@@ -1,0 +1,77 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --foreground-rgb: 255, 255, 255;
+  --background-start-rgb: 0, 0, 0;
+  --background-end-rgb: 0, 0, 0;
+}
+
+body {
+  background-color: #2e2157; /* Fallback retro-purple */
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+}
+::-webkit-scrollbar-track {
+  background: #2e2157; 
+}
+::-webkit-scrollbar-thumb {
+  background: #ffd700; 
+  border: 2px solid #000;
+}
+
+/* ... existing code ... */
+
+/* GATHER.TOWN STYLE FLOOR */
+.bg-floor-pattern {
+  background-color: #e5e5f7;
+  opacity: 1;
+  background-image:  linear-gradient(#d4d4f7 1.6px, transparent 1.6px), linear-gradient(90deg, #d4d4f7 1.6px, transparent 1.6px);
+  background-size: 40px 40px; /* Matches your CELL_SIZE */
+  background-color: #f3f4f6; /* Light gray office floor */
+}
+
+/* PIXEL ART WALL (Depth effect) */
+.pixel-wall {
+  box-shadow: 
+    0px 10px 0px #5a5a6e, /* Darker bottom wall for depth */
+    0px -10px 0px #ffffff, /* Top wall highlight */
+    10px 0px 0px #5a5a6e, /* Right shadow */
+    -10px 0px 0px #5a5a6e; /* Left shadow */
+}
+
+/* ... existing code ... */
+
+/* REALISTIC WOOD FLOOR (Procedural Texture) */
+.bg-wood-floor {
+  background-color: #e3cbaa;
+  background-image: 
+    linear-gradient(90deg, rgba(0,0,0,0.05) 1px, transparent 1px),
+    linear-gradient(rgba(0,0,0,0.05) 1px, transparent 1px);
+  background-size: 40px 40px; /* Tile Size */
+  box-shadow: inset 0 0 100px rgba(0,0,0,0.3); /* Vignette */
+}
+
+/* 3D WALLS (Top-Down Perspective) */
+.wall-top {
+  background-color: #8b9bb4; /* Top face */
+  border-bottom: 4px solid #5a6b8c; /* Edge */
+}
+.wall-face {
+  background-color: #64748b; /* Front face */
+  border-left: 1px solid rgba(255,255,255,0.1);
+  border-right: 1px solid rgba(0,0,0,0.2);
+}
+
+/* INTERACTION BUBBLE (Gather style) */
+.interact-bubble {
+  animation: float 2s ease-in-out infinite;
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}

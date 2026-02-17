@@ -1,0 +1,18 @@
+  [1m[38;2;173;127;168m▲ Next.js 14.2.35[39m[22m
+
+ [37m[1m [22m[39m Creating an optimized production build ...
+ [32m[1m✓[22m[39m Compiled successfully
+ [37m[1m [22m[39m Linting and checking validity of types ...
+\n---STDERR---\n[31mFailed to compile.
+[39m
+[36m./app/admin/actions.ts[39m:[33m22[39m:[33m17[39m
+[31m[1mType error[22m[39m: Argument of type '{ is_paused: boolean; }' is not assignable to parameter of type 'never'.
+
+[0m [90m 20 |[39m     [36mconst[39m { error } [33m=[39m [36mawait[39m supabaseAdmin[0m
+[0m [90m 21 |[39m         [33m.[39m[36mfrom[39m([32m'event_control'[39m)[0m
+[0m[31m[1m>[22m[39m[90m 22 |[39m         [33m.[39mupdate({ is_paused[33m:[39m isPaused })[0m
+[0m [90m    |[39m                 [31m[1m^[22m[39m[0m
+[0m [90m 23 |[39m         [33m.[39meq([32m'id'[39m[33m,[39m [35m1[39m)[0m
+[0m [90m 24 |[39m[0m
+[0m [90m 25 |[39m     [36mif[39m (error) [36mreturn[39m { error[33m:[39m error[33m.[39mmessage }[0m
+Next.js build worker exited with code: 1 and signal: null

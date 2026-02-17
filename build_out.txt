@@ -1,0 +1,19 @@
+  [1m[38;2;173;127;168m▲ Next.js 14.2.35[39m[22m
+
+ [37m[1m [22m[39m Creating an optimized production build ...
+ [32m[1m✓[22m[39m Compiled successfully
+ [37m[1m [22m[39m Linting and checking validity of types ...
+
+[31mFailed to compile.
+[39m
+[36m./app/avatar/actions.ts[39m:[33m40[39m:[33m13[39m
+[31m[1mType error[22m[39m: Argument of type '{ avatar_id: number; }' is not assignable to parameter of type 'never'.
+
+[0m [90m 38 |[39m   [36mconst[39m { error } [33m=[39m [36mawait[39m supabaseAdmin[0m
+[0m [90m 39 |[39m     [33m.[39m[36mfrom[39m([32m'teams'[39m)[0m
+[0m[31m[1m>[22m[39m[90m 40 |[39m     [33m.[39mupdate({ avatar_id[33m:[39m avatarId })[0m
+[0m [90m    |[39m             [31m[1m^[22m[39m[0m
+[0m [90m 41 |[39m     [33m.[39meq([32m'id'[39m[33m,[39m teamId)[0m
+[0m [90m 42 |[39m[0m
+[0m [90m 43 |[39m   [36mif[39m (error) {[0m
+Next.js build worker exited with code: 1 and signal: null

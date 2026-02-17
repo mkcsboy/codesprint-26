@@ -1,0 +1,52 @@
+﻿  Γû▓ Next.js 14.2.35
+
+   Creating an optimized production build ...
+ Γ£ô Compiled successfully
+   Linting and checking validity of types ...
+node : Failed to compile.
+At line:1 char:1
++ node ./node_modules/next/di
+st/bin/next build 2>&1 | 
+Out-File -Encodin ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo           
+   : NotSpecified: (Failed   
+  to compile.:String) [],    
+ RemoteException
+    + FullyQualifiedErrorId  
+   : NativeCommandError
+ 
+
+./app/admin/actions.ts:22:17
+Type error: Argument of type 
+'{ is_paused: boolean; }' is 
+not assignable to parameter 
+of type 'never'.
+
+[0m [90m 20 |[39m     
+[36mconst[39m { error } 
+[33m=[39m [36mawait[39m 
+supabaseAdmin[0m
+[0m [90m 21 |[39m         
+[33m.[39m[36mfrom[39m([3
+2m'event_control'[39m)[0m
+[0m[31m[1m>[22m[39m[90m
+ 22 |[39m         
+[33m.[39mupdate({ 
+is_paused[33m:[39m 
+isPaused })[0m
+[0m [90m    |[39m         
+        
+[31m[1m^[22m[39m[0m
+[0m [90m 23 |[39m         
+[33m.[39meq([32m'id'[39m
+[33m,[39m [35m1[39m)[0m
+[0m [90m 24 |[39m[0m
+[0m [90m 25 |[39m     
+[36mif[39m (error) 
+[36mreturn[39m { 
+error[33m:[39m 
+error[33m.[39mmessage }[0m
+Next.js build worker exited 
+with code: 1 and signal: null

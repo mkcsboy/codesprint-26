@@ -1,0 +1,41 @@
+app/admin/actions.ts(22,17): error TS2345: Argument of type '{ is_paused: boolean; }' is not assignable to parameter of type 'never'.
+app/admin/actions.ts(34,17): error TS2345: Argument of type '{ current_round: string; }' is not assignable to parameter of type 'never'.
+app/admin/actions.ts(46,17): error TS2345: Argument of type '{ status: "LOCKED" | "ACTIVE" | "COMPLETED"; }' is not assignable to parameter of type 'never'.
+app/admin/actions.ts(104,29): error TS2339: Property 'wallet_balance' does not exist on type 'never'.
+app/admin/actions.ts(109,17): error TS2345: Argument of type '{ wallet_balance: any; }' is not assignable to parameter of type 'never'.
+app/admin/actions.ts(115,46): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(values: never, options?: { count?: "exact" | "planned" | "estimated" | undefined; } | undefined): PostgrestFilterBuilder<{ PostgrestVersion: "12"; }, never, never, null, "transactions", never, "POST">', gave the following error.
+    Argument of type '{ team_id: string; amount: number; description: string; }' is not assignable to parameter of type 'never'.
+  Overload 2 of 2, '(values: never[], options?: { count?: "exact" | "planned" | "estimated" | undefined; defaultToNull?: boolean | undefined; } | undefined): PostgrestFilterBuilder<{ PostgrestVersion: "12"; }, never, never, null, "transactions", never, "POST">', gave the following error.
+    Object literal may only specify known properties, and 'team_id' does not exist in type 'never[]'.
+app/admin/actions.ts(131,17): error TS2345: Argument of type '{ current_locked_table: string; }' is not assignable to parameter of type 'never'.
+app/admin/actions.ts(140,21): error TS2345: Argument of type '{ current_locked_table: null; }' is not assignable to parameter of type 'never'.
+app/admin/actions.ts(152,17): error TS2345: Argument of type '{ current_locked_table: string; wallet_balance: number; }' is not assignable to parameter of type 'never'.
+app/admin/actions.ts(167,17): error TS2345: Argument of type '{ current_locked_table: null; }' is not assignable to parameter of type 'never'.
+app/admin/actions.ts(179,17): error TS2345: Argument of type '{ stamps: Json; }' is not assignable to parameter of type 'never'.
+app/admin/actions.ts(207,17): error TS2345: Argument of type '{ is_active: boolean; }' is not assignable to parameter of type 'never'.
+app/admin/actions.ts(219,17): error TS2345: Argument of type '{ is_used: boolean; }' is not assignable to parameter of type 'never'.
+app/admin/actions.ts(231,17): error TS2345: Argument of type '{ is_used: boolean; }' is not assignable to parameter of type 'never'.
+app/admin/actions.ts(247,21): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(values: never, options?: { count?: "exact" | "planned" | "estimated" | undefined; } | undefined): PostgrestFilterBuilder<{ PostgrestVersion: "12"; }, never, never, null, "question_bank", never, "POST">', gave the following error.
+    Argument of type 'any[]' is not assignable to parameter of type 'never'.
+  Overload 2 of 2, '(values: never[], options?: { count?: "exact" | "planned" | "estimated" | undefined; defaultToNull?: boolean | undefined; } | undefined): PostgrestFilterBuilder<{ PostgrestVersion: "12"; }, never, never, null, "question_bank", never, "POST">', gave the following error.
+    Argument of type 'any[]' is not assignable to parameter of type 'never[]'.
+      Type 'any' is not assignable to type 'never'.
+app/admin/actions.ts(280,60): error TS2339: Property 'wallet_balance' does not exist on type 'never'.
+app/admin/actions.ts(282,66): error TS2339: Property 'wallet_balance' does not exist on type 'never'.
+app/admin/actions.ts(283,66): error TS2339: Property 'wallet_balance' does not exist on type 'never'.
+app/admin/actions.ts(305,17): error TS2345: Argument of type '{ current_round: string; }' is not assignable to parameter of type 'never'.
+app/admin/actions.ts(324,29): error TS2339: Property 'wallet_balance' does not exist on type 'never'.
+app/admin/actions.ts(325,26): error TS2339: Property 'stamps' does not exist on type 'never'.
+app/admin/actions.ts(330,17): error TS2345: Argument of type '{ wallet_balance: any; stamps: Json; }' is not assignable to parameter of type 'never'.
+app/admin/actions.ts(339,46): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(values: never, options?: { count?: "exact" | "planned" | "estimated" | undefined; } | undefined): PostgrestFilterBuilder<{ PostgrestVersion: "12"; }, never, never, null, "transactions", never, "POST">', gave the following error.
+    Argument of type '{ team_id: string; amount: number; description: string; }' is not assignable to parameter of type 'never'.
+  Overload 2 of 2, '(values: never[], options?: { count?: "exact" | "planned" | "estimated" | undefined; defaultToNull?: boolean | undefined; } | undefined): PostgrestFilterBuilder<{ PostgrestVersion: "12"; }, never, never, null, "transactions", never, "POST">', gave the following error.
+    Object literal may only specify known properties, and 'team_id' does not exist in type 'never[]'.
+app/admin/dashboard/admin-client.tsx(100,39): error TS2339: Property 'is_paused' does not exist on type 'never'.
+app/admin/dashboard/admin-client.tsx(101,48): error TS2339: Property 'current_round' does not exist on type 'never'.
+app/avatar/actions.ts(40,13): error TS2345: Argument of type '{ avatar_id: number; }' is not assignable to parameter of type 'never'.
+
+

@@ -459,11 +459,11 @@ export default function GamePage() {
       // 3. Start Web Worker
       const worker = new Worker('/pythonWorker.js')
 
-      // 4. Create Timeout Promise (5 Seconds)
+      // 4. Create Timeout Promise (2 Minutes)
       const timeoutPromise = new Promise<{ error: string }>((resolve) => {
         setTimeout(() => {
-          resolve({ error: "Execution Timed Out (5s).\nDid you write an infinite loop?" })
-        }, 5000)
+          resolve({ error: "Execution Timed Out (2m).\nDid you write an infinite loop?" })
+        }, 120000)
       })
 
       // 5. Create Worker Execution Promise

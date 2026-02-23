@@ -1,7 +1,7 @@
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { supabaseAdmin } from '@/lib/supabase/server'
-import MapClient from './map-client' 
+import MapClient from './map-client'
 
 export default async function MapPage() {
   // 1. Check for the Login Cookie

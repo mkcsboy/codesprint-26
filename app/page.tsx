@@ -13,11 +13,11 @@ export default function LoginPage() {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen w-full gap-8 animate-fade-in">
-      
+
       {/* HEADER */}
       <div className="text-center space-y-4">
         <h1 className="text-4xl md:text-6xl text-retro-gold drop-shadow-[4px_4px_0_#000] font-pixel">
-          CODESPRINT'26
+          CODESPRINT&apos;26
         </h1>
         <p className="text-retro-green text-sm md:text-base tracking-widest font-pixel">
           INSERT COIN TO START
@@ -26,7 +26,7 @@ export default function LoginPage() {
 
       {/* LOGIN CARD */}
       <div className="bg-retro-purple border-4 border-retro-gold shadow-pixel p-8 w-full max-w-md relative">
-        
+
         {/* Decorative corner pixels */}
         <div className="absolute -top-2 -left-2 w-4 h-4 bg-retro-purple border-t-4 border-l-4 border-retro-gold" />
         <div className="absolute -top-2 -right-2 w-4 h-4 bg-retro-purple border-t-4 border-r-4 border-retro-gold" />

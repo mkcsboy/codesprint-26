@@ -4,22 +4,20 @@ import { useState, useEffect, useCallback } from 'react'
 import {
     Shield, Pause, Play, Zap, Search, DollarSign, AlertTriangle, Ban,
     Award, Upload, RotateCcw, ToggleLeft, ToggleRight, Trophy, BarChart3,
-    Megaphone, Eye, ChevronDown, RefreshCw, X, Check, Flame, Snowflake
+    Megaphone, Eye, ChevronDown, RefreshCw, X, Check, Flame
 } from 'lucide-react'
 import {
-    togglePause, setCurrentRound, setTableStatus, getEventState,
+    togglePause, setCurrentRound, getEventState,
     getAllTeams, adjustWallet, sendWarning, banTeam, unbanTeam, updateStamps,
     getAllQuestions, toggleQuestion, burnQuestion, reshuffleAllQuestions, bulkUploadQuestions,
-    getLeaderboard, getAnalytics, broadcastMessage, forceWin, createTeam
+    getLeaderboard, getAnalytics, broadcastMessage, forceWin, createTeam,
+    startTableRound, setTableStatusState, awardWin
 } from '../actions'
 import { Json } from '@/lib/supabase/types'
 
 type Tab = 'pit' | 'vault' | 'deck' | 'eye'
 
 const GAME_TYPES = ['slots', 'roulette', 'blackjack', 'holdem', 'craps'] as const
-const ROUND_MAP: Record<string, number> = {
-    slots: 1, roulette: 2, blackjack: 3, holdem: 4, craps: 5
-}
 const GAME_LABELS: Record<string, string> = {
     slots: '🎰 SLOTS (Debug)',
     roulette: '🎯 ROULETTE (Predict)',
@@ -87,11 +85,18 @@ export default function AdminDashboard() {
 function ThePit() {
     const [isPaused, setIsPaused] = useState(false)
     const [currentRound, setCurrentRoundState] = useState('slots')
-    const [tableStatuses, setTableStatuses] = useState<Record<number, string>>({})
     const [liveFeed, setLiveFeed] = useState<any[]>([])
     const [broadcast, setBroadcast] = useState('')
     const [loading, setLoading] = useState(true)
     const [actionLoading, setActionLoading] = useState<string | null>(null)
+    const [tableTimers, setTableTimers] = useState<Record<string, string>>({})
+    const [activeTeams, setActiveTeams] = useState<any[]>([])
+    const [currentTime, setCurrentTime] = useState(Date.now())
+
+    useEffect(() => {
+        const interval = setInterval(() => setCurrentTime(Date.now()), 1000)
+        return () => clearInterval(interval)
+    }, [])
 
     const refresh = useCallback(async () => {
         setLoading(true)
@@ -99,15 +104,26 @@ function ThePit() {
         if (data && !data.error) {
             setIsPaused(data.control?.is_paused || false)
             setCurrentRoundState(data.control?.current_round || 'slots')
-            const statuses: Record<number, string> = {}
-            data.rounds?.forEach((r: any) => { statuses[r.round_number] = r.status })
-            setTableStatuses(statuses)
             setLiveFeed(data.recentTx || [])
+            setTableTimers(data.control?.table_timers as Record<string, string> || {})
+            setActiveTeams(data.activeTeams || [])
         }
         setLoading(false)
     }, [])
 
     useEffect(() => { refresh() }, [refresh])
+
+    useEffect(() => {
+        const poll = setInterval(() => { refresh() }, 5000)
+        return () => clearInterval(poll)
+    }, [refresh])
+
+    const handleTableStatusChange = async (gameId: string, newStatus: string) => {
+        setActionLoading(`table-status-${gameId}`)
+        await setTableStatusState(gameId, newStatus)
+        await refresh()
+        setActionLoading(null)
+    }
 
     const handleKillSwitch = async () => {
         setActionLoading('kill')
@@ -124,12 +140,24 @@ function ThePit() {
         setActionLoading(null)
     }
 
-    const handleTableToggle = async (roundNum: number) => {
-        const current = tableStatuses[roundNum]
-        const newStatus = current === 'ACTIVE' ? 'LOCKED' : 'ACTIVE'
-        setActionLoading(`table-${roundNum}`)
-        await setTableStatus(roundNum, newStatus as any)
-        setTableStatuses(prev => ({ ...prev, [roundNum]: newStatus }))
+    const handleStartRound = async () => {
+        if (!window.confirm(`Are you sure? This will AUTO-BURN active questions for ${GAME_LABELS[currentRound]} and start an isolated 15-minute sync timer just for THIS table.`)) return;
+        setActionLoading('start-round')
+        await startTableRound(currentRound, 15)
+        alert(`15-Minute timer started for ${GAME_LABELS[currentRound]}!`)
+        refresh()
+        setActionLoading(null)
+    }
+
+    const handleAwardWin = async (teamId: string, teamName: string, gameId: string) => {
+        const confirmMsg = `Are you sure you want to PASS [${teamName}] for ${gameId.toUpperCase()}?\n\nThis will trigger the SUCCESS screen on their laptop and unlock them from the table.\n\n⚠️ DON'T FORGET to award their credits manually via the VAULT!`
+        if (!window.confirm(confirmMsg)) return;
+
+        setActionLoading(`award-${teamId}`)
+        const res = await awardWin(teamId, gameId)
+        if (res.error) alert(`Error: ${res.error}`)
+        else alert(`✅ SUCCESS: ${teamName} has been unlocked from the table!`)
+        await refresh()
         setActionLoading(null)
     }
 
@@ -189,30 +217,99 @@ function ThePit() {
                     </div>
 
                     {/* Table Controls */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                        {GAME_TYPES.map(g => {
-                            const rn = ROUND_MAP[g]
-                            const status = tableStatuses[rn] || 'LOCKED'
-                            const isActive = status === 'ACTIVE'
+                    <div className="mt-6 border-t border-white/10 pt-4">
+                        <button
+                            onClick={handleStartRound}
+                            disabled={actionLoading === 'start-round'}
+                            className="w-full flex items-center justify-center gap-2 p-4 bg-red-900/40 hover:bg-red-900/60 border-2 border-red-500 rounded-xl text-red-100 font-pixel text-lg shadow-[0_0_15px_rgba(239,68,68,0.3)] transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            <Play className="w-5 h-5" />
+                            START {currentRound.toUpperCase()}
+                        </button>
+                        <p className="text-center text-[10px] text-gray-500 mt-2 font-mono uppercase">
+                            Warning: This will auto-burn active questions for {currentRound}.
+                        </p>
+                    </div>
 
-                            return (
-                                <button
-                                    key={g}
-                                    onClick={() => handleTableToggle(rn)}
-                                    disabled={actionLoading === `table-${rn}`}
-                                    className={`flex items-center justify-between p-3 rounded-lg border transition-all text-sm font-mono
-                    ${isActive
-                                            ? 'bg-green-900/20 border-green-700 text-green-400 hover:bg-green-900/30'
-                                            : 'bg-red-900/10 border-red-900/30 text-red-400/60 hover:bg-red-900/20'
-                                        }`}
-                                >
-                                    <span className="truncate text-xs">{GAME_LABELS[g]}</span>
-                                    <span className={`text-[10px] font-pixel px-2 py-0.5 rounded ${isActive ? 'bg-green-600 text-white' : 'bg-red-900/40 text-red-300'}`}>
-                                        {isActive ? 'OPEN' : 'CLOSED'}
-                                    </span>
-                                </button>
-                            )
-                        })}
+                    <div className="mt-6 border-t border-white/10 pt-4">
+                        <h4 className="text-[10px] text-gray-500 uppercase tracking-widest mb-3">Live Table Timers</h4>
+                        <div className="space-y-2">
+                            {GAME_TYPES.map(g => {
+                                const playingTeams = activeTeams.filter(t => t.current_locked_table === g)
+                                const startTime = tableTimers[g]
+                                const gameStatus = tableTimers[`${g}_status`] || 'ACTIVE'
+                                let status = "WAITING"
+                                let color = "text-gray-500"
+
+                                if (isPaused || gameStatus === 'PAUSED') {
+                                    status = "PAUSED"
+                                    color = "text-yellow-400 font-bold animate-pulse"
+                                } else if (gameStatus === 'KILLED') {
+                                    status = "KILLED"
+                                    color = "text-red-500 font-bold"
+                                } else if (startTime) {
+                                    const diff = new Date(startTime).getTime() + (16 * 60000) - currentTime
+                                    if (diff > 0) {
+                                        const m = Math.floor(diff / 60000)
+                                        const s = Math.floor((diff % 60000) / 1000)
+                                        status = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
+                                        color = "text-green-400 font-bold"
+                                    } else {
+                                        status = "00:00 (ENDED)"
+                                        color = "text-red-400"
+                                    }
+                                }
+                                return (
+                                    <div key={g} className="flex flex-col gap-2 bg-black/40 p-3 rounded-lg border border-white/5">
+                                        <div className="flex justify-between items-center text-xs font-mono mb-2">
+                                            <span className="text-gray-400 uppercase w-32">{g}</span>
+                                            <div className="flex items-center gap-2">
+                                                {tableTimers[`${g}_pin`] && <span className="bg-yellow-500/20 text-yellow-500 border border-yellow-500/50 px-2 py-0.5 rounded font-bold tracking-widest">{tableTimers[`${g}_pin`]}</span>}
+                                                <span className={color}>{status}</span>
+                                            </div>
+                                        </div>
+                                        {/* Actions */}
+                                        <div className="flex gap-2">
+                                            <button
+                                                onClick={() => handleTableStatusChange(g, gameStatus === 'PAUSED' ? 'ACTIVE' : 'PAUSED')}
+                                                disabled={actionLoading === `table-status-${g}`}
+                                                className={`flex-1 py-1 rounded text-[10px] font-pixel border transition-colors ${gameStatus === 'PAUSED' ? 'bg-green-900/30 text-green-400 border-green-500/50 hover:bg-green-600/30' : 'bg-yellow-900/30 text-yellow-400 border-yellow-500/50 hover:bg-yellow-600/30'}`}>
+                                                {gameStatus === 'PAUSED' ? 'RESUME' : 'PAUSE'}
+                                            </button>
+                                            <button
+                                                onClick={() => { if (window.confirm('Kill this table? Time will stop and players lose.')) handleTableStatusChange(g, 'KILLED') }}
+                                                disabled={actionLoading === `table-status-${g}` || gameStatus === 'KILLED'}
+                                                className="flex-1 py-1 rounded text-[10px] bg-red-900/30 text-red-500 border border-red-500/50 hover:bg-red-600/30 font-pixel transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                                                KILL
+                                            </button>
+                                        </div>
+                                        {/* Show Teams */}
+                                        {playingTeams.length > 0 && (
+                                            <div className="flex flex-col gap-2 mt-2 border-t border-white/10 pt-2">
+                                                <span className="text-[9px] text-gray-500 uppercase tracking-widest">Active Players ({playingTeams.length})</span>
+                                                <div className="flex flex-col gap-2">
+                                                    {playingTeams.map(t => (
+                                                        <div key={t.id} className="flex items-center justify-between bg-[#1a1a24] p-2 rounded border border-white/5 shadow-inner shadow-black">
+                                                            <div className="flex flex-col">
+                                                                <span className="text-xs font-bold text-white uppercase">{t.team_name}</span>
+                                                                <span className="text-[10px] text-gray-400 font-mono">Code: {t.access_code}</span>
+                                                            </div>
+                                                            <button
+                                                                onClick={() => handleAwardWin(t.id, t.team_name, g)}
+                                                                disabled={actionLoading === `award-${t.id}`}
+                                                                className="px-3 py-1 bg-green-900/40 hover:bg-green-600/60 border border-green-500/50 text-green-400 font-pixel text-[10px] rounded transition-all disabled:opacity-50"
+                                                            >
+                                                                ✅ PASS
+                                                            </button>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                )
+                            })}
+                        </div>
                     </div>
                 </div>
             </div>

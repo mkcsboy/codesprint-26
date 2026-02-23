@@ -1,6 +1,6 @@
 'use client'
 
-import Editor, { OnMount } from "@monaco-editor/react"
+import Editor from "@monaco-editor/react"
 import { useRef } from "react"
 
 interface CodeEditorProps {
@@ -13,7 +13,7 @@ export default function CodeEditor({ starterCode, onChange, readOnly = false }: 
   // FIX: Added <any> so it can hold the Editor object
   const editorRef = useRef<any>(null)
 
-  const handleEditorDidMount: OnMount = (editor, monaco) => {
+  function handleEditorDidMount(editor: any) {
     editorRef.current = editor
     // Optional: Add custom keybindings or config here
   }
@@ -35,7 +35,7 @@ export default function CodeEditor({ starterCode, onChange, readOnly = false }: 
         <Editor
           height="100%"
           defaultLanguage="python"
-          defaultValue={starterCode}
+          value={starterCode}
           theme="vs-dark"
           options={{
             minimap: { enabled: false },

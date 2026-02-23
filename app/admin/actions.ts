@@ -13,12 +13,37 @@ function isAdminAuthenticated(): boolean {
 // TAB A: "THE PIT" - Live Ops
 // =============================================
 
+export async function setTableStatusState(gameId: string, status: string) {
+    if (!isAdminAuthenticated()) return { error: 'UNAUTHORIZED' }
+
+    const { data: currentEvent } = await supabaseAdmin
+        .from('event_control')
+        .select('table_timers')
+        .eq('id', 1)
+        .single()
+
+    const currentTimers = (currentEvent?.table_timers && typeof currentEvent.table_timers === 'object')
+        ? { ...(currentEvent.table_timers as Record<string, string>) }
+        : {}
+
+    currentTimers[`${gameId}_status`] = status
+
+    const { error: eventErr } = await supabaseAdmin
+        .from('event_control')
+        .update({ table_timers: currentTimers } as any)
+        .eq('id', 1)
+
+    if (eventErr) return { error: eventErr.message }
+
+    return { success: true }
+}
+
 export async function togglePause(isPaused: boolean) {
     if (!isAdminAuthenticated()) return { error: 'UNAUTHORIZED' }
 
     const { error } = await supabaseAdmin
         .from('event_control')
-        .update({ is_paused: isPaused })
+        .update({ is_paused: isPaused } as any)
         .eq('id', 1)
 
     if (error) return { error: error.message }
@@ -30,23 +55,108 @@ export async function setCurrentRound(roundName: string) {
 
     const { error } = await supabaseAdmin
         .from('event_control')
-        .update({ current_round: roundName })
+        .update({ current_round: roundName } as any)
         .eq('id', 1)
 
     if (error) return { error: error.message }
     return { success: true }
 }
 
-export async function setTableStatus(roundNumber: number, status: 'LOCKED' | 'ACTIVE' | 'COMPLETED') {
+export async function startTableRound(gameId: string, durationMins: number = 16) {
     if (!isAdminAuthenticated()) return { error: 'UNAUTHORIZED' }
 
-    const { error } = await supabaseAdmin
-        .from('game_rounds')
-        .update({ status })
-        .eq('round_number', roundNumber)
+    const now = new Date().toISOString()
+    const pin = Math.floor(1000 + Math.random() * 9000).toString()
 
-    if (error) return { error: error.message }
+    // 1. Fetch current table timers to preserve other active games
+    const { data: currentEvent } = await supabaseAdmin
+        .from('event_control')
+        .select('table_timers')
+        .eq('id', 1)
+        .single()
+
+    // Fallback if missing or not an object
+    const currentTimers = (currentEvent?.table_timers && typeof currentEvent.table_timers === 'object')
+        ? { ...(currentEvent.table_timers as Record<string, string>) }
+        : {}
+
+    // Inject the new timer for this specific table (storing start time string, status, and pin)
+    currentTimers[gameId] = now
+    currentTimers[`${gameId}_status`] = 'ACTIVE'
+    currentTimers[`${gameId}_pin`] = pin
+
+    // Update the event_control table with the merged timers
+    const { error: eventErr } = await supabaseAdmin
+        .from('event_control')
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .update({ table_timers: currentTimers } as any)
+        .eq('id', 1)
+
+    if (eventErr) return { error: eventErr.message }
+
+    // Update the game_state table with the actual PIN text Native SQL storage
+    await supabaseAdmin
+        .from('game_state')
+        .upsert({ game_id: gameId, entry_pin: pin, is_active: true } as any)
+
+    // 2. Shut down previously active questions for THIS game table
+    await supabaseAdmin
+        .from('question_bank')
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .update({ is_active: false } as any)
+        .eq('is_active', true)
+        .ilike('game_type', gameId)
+
+    // 3. Select exactly 1 STANDARD and 1 HIGH unused question for THIS game table
+    const difficulties = ['STANDARD', 'HIGH']
+    const selectedIds: string[] = []
+
+    for (const diff of difficulties) {
+        const { data: qList } = await supabaseAdmin
+            .from('question_bank')
+            .select('id')
+            .ilike('game_type', gameId)
+            .ilike('difficulty', diff)
+            .eq('is_used', false)
+
+        if (qList && qList.length > 0) {
+            const randomQ = qList[Math.floor(Math.random() * qList.length)]
+            selectedIds.push(randomQ.id)
+        }
+    }
+
+    // 4. Activate the newly drawn 2 questions AND mark them USED permanently
+    if (selectedIds.length > 0) {
+        await supabaseAdmin
+            .from('question_bank')
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            .update({ is_active: true, is_used: true } as any)
+            .in('id', selectedIds)
+    }
+
     return { success: true }
+}
+// --- NEW: PIT BOSS MANUAL WIN VALIDATION ---
+export async function awardWin(teamId: string, gameId: string) {
+    if (!isAdminAuthenticated()) return { error: 'UNAUTHORIZED' }
+
+    try {
+        const winState = `WIN_${gameId.toUpperCase()}`
+
+        // Perform the State Flag update to trigger the Success Modal on the client
+        const { error: updateError } = await supabaseAdmin
+            .from('teams')
+            .update({
+                current_locked_table: winState
+            } as any)
+            .eq('id', teamId)
+
+        if (updateError) throw updateError
+
+        return { success: true }
+    } catch (err: any) {
+        return { error: err.message || "Failed to award win." }
+    }
 }
 
 export async function getEventState() {
@@ -69,7 +179,26 @@ export async function getEventState() {
         .order('created_at', { ascending: false })
         .limit(20)
 
-    return { control, rounds, recentTx }
+    const { data: activeTeams } = await supabaseAdmin
+        .from('teams')
+        .select('id, access_code, current_locked_table')
+        .not('current_locked_table', 'is', null)
+
+    const { data: gameStates } = await supabaseAdmin
+        .from('game_state')
+        .select('game_id, entry_pin')
+
+    if (control && control.table_timers && gameStates) {
+        let clonedTimers = { ...control.table_timers }
+        gameStates.forEach((gs: any) => {
+            if (gs.game_id && gs.entry_pin) {
+                clonedTimers[`${gs.game_id}_pin`] = gs.entry_pin
+            }
+        })
+        control.table_timers = clonedTimers
+    }
+
+    return { control, rounds, recentTx, activeTeams }
 }
 
 // =============================================
@@ -105,7 +234,7 @@ export async function adjustWallet(teamId: string, amount: number, reason: strin
     // Update wallet
     const { error: updateErr } = await supabaseAdmin
         .from('teams')
-        .update({ wallet_balance: newBalance })
+        .update({ wallet_balance: newBalance } as any)
         .eq('id', teamId)
 
     if (updateErr) return { error: updateErr.message }
@@ -127,7 +256,7 @@ export async function sendWarning(teamId: string) {
     // The client will listen for this on the 'admin_alerts' channel
     const { error } = await supabaseAdmin
         .from('teams')
-        .update({ current_locked_table: 'WARNING' })
+        .update({ current_locked_table: 'WARNING' } as any)
         .eq('id', teamId)
 
     if (error) return { error: error.message }
@@ -136,7 +265,7 @@ export async function sendWarning(teamId: string) {
     setTimeout(async () => {
         await supabaseAdmin
             .from('teams')
-            .update({ current_locked_table: null })
+            .update({ current_locked_table: null } as any)
             .eq('id', teamId)
     }, 100)
 
@@ -151,7 +280,7 @@ export async function banTeam(teamId: string) {
         .update({
             current_locked_table: 'BANNED',
             wallet_balance: 0
-        })
+        } as any)
         .eq('id', teamId)
 
     if (error) return { error: error.message }
@@ -163,7 +292,7 @@ export async function unbanTeam(teamId: string) {
 
     const { error } = await supabaseAdmin
         .from('teams')
-        .update({ current_locked_table: null })
+        .update({ current_locked_table: null } as any)
         .eq('id', teamId)
 
     if (error) return { error: error.message }
@@ -175,10 +304,18 @@ export async function updateStamps(teamId: string, stamps: Json) {
 
     const { error } = await supabaseAdmin
         .from('teams')
-        .update({ stamps })
+        .update({ stamps } as any)
         .eq('id', teamId)
 
     if (error) return { error: error.message }
+
+    // Log transaction for badge
+    await supabaseAdmin.from('transactions').insert({
+        team_id: teamId,
+        amount: 0,
+        description: `[ADMIN] Updated Badges`,
+    } as any)
+
     return { success: true }
 }
 
@@ -230,7 +367,7 @@ export async function toggleQuestion(questionId: string, isActive: boolean) {
 
     const { error } = await supabaseAdmin
         .from('question_bank')
-        .update({ is_active: isActive })
+        .update({ is_active: isActive } as any)
         .eq('id', questionId)
 
     if (error) return { error: error.message }
@@ -242,7 +379,7 @@ export async function burnQuestion(questionId: string) {
 
     const { error } = await supabaseAdmin
         .from('question_bank')
-        .update({ is_used: true })
+        .update({ is_used: true } as any)
         .eq('id', questionId)
 
     if (error) return { error: error.message }
@@ -254,7 +391,7 @@ export async function reshuffleAllQuestions() {
 
     const { error } = await supabaseAdmin
         .from('question_bank')
-        .update({ is_used: false })
+        .update({ is_used: false } as any)
         .neq('id', '00000000-0000-0000-0000-000000000000') // Update all rows
 
     if (error) return { error: error.message }
@@ -265,8 +402,24 @@ export async function bulkUploadQuestions(questionsJson: string) {
     if (!isAdminAuthenticated()) return { error: 'UNAUTHORIZED' }
 
     try {
-        const questions = JSON.parse(questionsJson)
-        if (!Array.isArray(questions)) return { error: 'JSON must be an array' }
+        let questions = JSON.parse(questionsJson)
+
+        // Auto-wrap single objects in an array seamlessly!
+        if (!Array.isArray(questions)) {
+            if (typeof questions === 'object' && questions !== null) {
+                questions = [questions]
+            } else {
+                return { error: 'JSON must be an object or an array' }
+            }
+        }
+
+        // Strip any manual states so they don't immediately crash the table draw logic
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        questions = questions.map((q: any) => ({
+            ...q,
+            is_active: false,
+            is_used: false
+        }))
 
         const { error } = await supabaseAdmin
             .from('question_bank')
@@ -328,7 +481,7 @@ export async function broadcastMessage(message: string) {
     // The client-side will subscribe to changes on this table
     const { error } = await supabaseAdmin
         .from('event_control')
-        .update({ current_round: `BROADCAST:${message}` })
+        .update({ current_round: `BROADCAST:${message}` } as any)
         .eq('id', 1)
 
     if (error) return { error: error.message }
@@ -356,7 +509,7 @@ export async function forceWin(teamId: string, gameType: string, amount: number)
         .update({
             wallet_balance: newBalance,
             stamps: stamps as unknown as Json,
-        })
+        } as any)
         .eq('id', teamId)
 
     if (error) return { error: error.message }
@@ -370,3 +523,4 @@ export async function forceWin(teamId: string, gameType: string, amount: number)
 
     return { success: true, newBalance }
 }
+

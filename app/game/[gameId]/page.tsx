@@ -39,13 +39,13 @@ print(solve(10))`
     return 0`
   },
   holdem: {
-    title: 'TEXAS HOLD\'EM: OPTIMIZER',
+    title: 'TEXAS HOLD\'EM: DSA',
     color: 'text-green-400',
     bg: 'bg-green-900/20',
-    description: "Shortest code wins the pot.",
-    rules: ["Solve correctly.", "Standard: < 30 Lines.", "High Roller: < 10 Lines."],
-    starter: `def optimize_me(arr):
-    # Write the shortest solution
+    description: "Master Data Structures and Algorithms to win the pot.",
+    rules: ["Implement the optimal algorithm.", "Use standard Python data structures.", "Time: 15 Mins."],
+    starter: `def solve_dsa(data):
+    # Implement your algorithm here
     pass`
   },
   craps: {

@@ -15,7 +15,26 @@ export default function CodeEditor({ starterCode, onChange, readOnly = false }: 
 
   function handleEditorDidMount(editor: any) {
     editorRef.current = editor
-    // Optional: Add custom keybindings or config here
+
+    const domNode = editor.getDomNode()
+
+    // 1. Block right click to prevent manual copy/pasting menu
+    domNode.addEventListener('contextmenu', (e: Event) => {
+      e.preventDefault()
+    })
+
+    // 2. Block default Ctrl+C / Ctrl+V
+    domNode.addEventListener('keydown', (e: KeyboardEvent) => {
+      const isMacCmd = e.metaKey
+      const isWinCtrl = e.ctrlKey
+      const isCopyPaste = e.key.toLowerCase() === 'c' || e.key.toLowerCase() === 'v'
+
+      // If they press command/ctrl + c/v WITHOUT Shift
+      if ((isMacCmd || isWinCtrl) && isCopyPaste && !e.shiftKey) {
+        e.stopPropagation()
+        e.preventDefault()
+      }
+    }, true) // Use capture phase to intercept before Monaco handles it
   }
 
   return (

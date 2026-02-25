@@ -67,24 +67,17 @@ export async function fetchQuestionData(gameId: string, difficultyStr: string = 
 
     console.log(`DEBUG: fetchQuestionData result: data=`, data, `error=`, error);
 
-    if (error) {
-      console.error("Supabase Error fetching question:", error);
-      return { error: "Failed to load question from database." };
-    }
 
-    if (!data) {
-      return { error: "No active question found for this game type." };
-    }
-
-    // Cast data to avoid 'never' type inference issues on the client
+    // Fallback logic for single obj vs array
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const questionData = data as any;
+    const qData = data as any;
+    const questionData = qData && Array.isArray(qData) && qData.length > 0 ? qData[0] : (qData || null);
 
-    // We no longer build the asserts here because the user might rename the function in the editor.
-    // Instead, we pass the raw test_cases down to the client to compile at runtime.
-    let legacyHiddenTests = "";
-    if (!questionData.test_cases && questionData.hidden_tests) {
-      legacyHiddenTests = questionData.hidden_tests;
+    console.log(`DEBUG: fetchQuestionData result: data=`, questionData, `error=`, error);
+
+    if (error || !questionData) {
+      console.error("Supabase Error fetching question:", error);
+      return { error: "No active questions found for this table/difficulty." };
     }
 
     return {
@@ -94,7 +87,8 @@ export async function fetchQuestionData(gameId: string, difficultyStr: string = 
         content: questionData.problem_statement || questionData.content, // Support both schemas
         starter_code: questionData.starter_code,
         constraints: questionData.constraints, // This could be a string of banned words/symbols separated by commas
-        expected_output: questionData.test_cases && questionData.test_cases.length > 0 ? questionData.test_cases[0].expected : null
+        expected_output: questionData.test_cases && questionData.test_cases.length > 0 ? questionData.test_cases[0].expected : null,
+        test_cases: questionData.test_cases || [] // Raw payload for the UI
       }
     };
   } catch {

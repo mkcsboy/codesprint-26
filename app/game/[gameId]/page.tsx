@@ -114,7 +114,8 @@ export default function GamePage() {
   const [dynamicConfig, setDynamicConfig] = useState<{
     description: string,
     starter: string,
-    expected_output?: string
+    expected_output?: string,
+    test_cases?: any[]
   } | null>(null)
 
   // 1. Initial Data Fetch
@@ -329,7 +330,8 @@ export default function GamePage() {
           setDynamicConfig({
             description: res.question.content || (config ? config.description : ""),
             starter: res.question.starter_code || (config ? config.starter : ""),
-            expected_output: res.question.expected_output
+            expected_output: res.question.expected_output,
+            test_cases: res.question.test_cases
           })
           setCode(res.question.starter_code || (config ? config.starter : ""))
         } else {
@@ -594,14 +596,39 @@ export default function GamePage() {
                 <p className="text-gray-400 font-mono text-center text-xs px-4 mt-2">Waiting for Pit Boss...</p>
               </div>
             )}
-            <div className="bg-[#2a2b38] rounded-lg p-6 border border-white/10 flex-grow overflow-y-auto shadow-lg">
-              <h2 className="text-xl font-bold mb-4 text-retro-gold">The Challenge</h2>
-              <p className="text-gray-300 font-sans leading-relaxed text-sm whitespace-pre-wrap">
-                {dynamicConfig ? dynamicConfig.description : (gameId === 'roulette' ? "Predict the output." : "Write a Python script to solve the problem.")}
-              </p>
-              {gameId === 'roulette' && (
-                <div className="bg-black p-4 mt-4 rounded border border-gray-600 font-mono text-xs">
-                  x = 3<br />y = 5<br />for i in range(1, 4):...
+            <div className="bg-[#2a2b38] rounded-lg p-6 border border-white/10 flex-grow overflow-y-auto shadow-lg flex flex-col gap-4">
+              <div>
+                <h2 className="text-xl font-bold mb-4 text-retro-gold">The Challenge</h2>
+                <p className="text-gray-300 font-sans leading-relaxed text-sm whitespace-pre-wrap">
+                  {dynamicConfig ? dynamicConfig.description : (gameId === 'roulette' ? "Predict the output." : "Write a Python script to solve the problem.")}
+                </p>
+                {gameId === 'roulette' && (
+                  <div className="bg-black p-4 mt-4 rounded border border-gray-600 font-mono text-xs">
+                    x = 3<br />y = 5<br />for i in range(1, 4):...
+                  </div>
+                )}
+              </div>
+
+              {/* TEST CASES VISUALIZER */}
+              {dynamicConfig?.test_cases && dynamicConfig.test_cases.length > 0 && (
+                <div className="mt-4 border-t border-white/10 pt-4">
+                  <h3 className="text-sm font-bold text-gray-400 mb-3 uppercase tracking-wider">Test Cases</h3>
+                  <div className="space-y-3">
+                    {dynamicConfig.test_cases.map((tc: any, i: number) => (
+                      <div key={i} className="bg-black/50 border border-gray-700 rounded p-3 font-mono text-[10px] md:text-xs">
+                        {tc.input && (
+                          <div className="mb-1">
+                            <span className="text-blue-400">Input: </span>
+                            <span className="text-gray-300">{tc.input}</span>
+                          </div>
+                        )}
+                        <div>
+                          <span className="text-green-400">Expected: </span>
+                          <span className="text-gray-300">{tc.expected}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>

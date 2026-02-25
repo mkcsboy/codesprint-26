@@ -26,6 +26,29 @@ export async function setTableStatusState(gameId: string, status: string) {
         ? { ...(currentEvent.table_timers as Record<string, string>) }
         : {}
 
+    const previousStatus = currentTimers[`${gameId}_status`]
+
+    // Record when the specific table was paused
+    if (status === 'PAUSED' && previousStatus !== 'PAUSED') {
+        currentTimers[`${gameId}_paused_at`] = new Date().toISOString()
+    }
+    // If we're resuming, calculate how long we were paused and shift the start time
+    else if (status === 'ACTIVE' && previousStatus === 'PAUSED') {
+        const pausedAtStr = currentTimers[`${gameId}_paused_at`]
+        if (pausedAtStr) {
+            const pausedAt = new Date(pausedAtStr).getTime()
+            const now = Date.now()
+            const diff = now - pausedAt
+
+            const currentStartStr = currentTimers[gameId]
+            if (currentStartStr) {
+                const currentStart = new Date(currentStartStr).getTime()
+                currentTimers[gameId] = new Date(currentStart + diff).toISOString()
+            }
+            delete currentTimers[`${gameId}_paused_at`]
+        }
+    }
+
     currentTimers[`${gameId}_status`] = status
 
     const { error: eventErr } = await supabaseAdmin
@@ -35,15 +58,64 @@ export async function setTableStatusState(gameId: string, status: string) {
 
     if (eventErr) return { error: eventErr.message }
 
+    // If the Pit Boss explicitly KILLS the table, forcefully eject everyone and close it
+    if (status === 'KILLED') {
+        // 1. Mark table offline so no one else can join
+        await supabaseAdmin
+            .from('game_state')
+            .update({ is_active: false } as any)
+            .eq('game_id', gameId)
+
+        // 2. Clear locked table state for all trapped players to eject them instantly
+        await supabaseAdmin
+            .from('teams')
+            .update({ current_locked_table: null } as any)
+            .eq('current_locked_table', gameId)
+    }
+
     return { success: true }
 }
 
 export async function togglePause(isPaused: boolean) {
     if (!isAdminAuthenticated()) return { error: 'UNAUTHORIZED' }
 
+    const { data: currentEvent } = await supabaseAdmin
+        .from('event_control')
+        .select('table_timers, is_paused')
+        .eq('id', 1)
+        .single()
+
+    const currentTimers = (currentEvent?.table_timers && typeof currentEvent.table_timers === 'object')
+        ? { ...(currentEvent.table_timers as Record<string, string>) }
+        : {}
+
+    if (isPaused && !currentEvent?.is_paused) {
+        currentTimers['global_paused_at'] = new Date().toISOString()
+    } else if (!isPaused && currentEvent?.is_paused) {
+        const pausedAtStr = currentTimers['global_paused_at']
+        if (pausedAtStr) {
+            const pausedAt = new Date(pausedAtStr).getTime()
+            const now = Date.now()
+            const diff = now - pausedAt
+
+            // Shift all game start times forward
+            for (const key of Object.keys(currentTimers)) {
+                // If the key is a gameId (doesn't contain an underscore)
+                if (!key.includes('_')) {
+                    const currentStartStr = currentTimers[key]
+                    if (currentStartStr) {
+                        const currentStart = new Date(currentStartStr).getTime()
+                        currentTimers[key] = new Date(currentStart + diff).toISOString()
+                    }
+                }
+            }
+            delete currentTimers['global_paused_at']
+        }
+    }
+
     const { error } = await supabaseAdmin
         .from('event_control')
-        .update({ is_paused: isPaused } as any)
+        .update({ is_paused: isPaused, table_timers: currentTimers } as any)
         .eq('id', 1)
 
     if (error) return { error: error.message }

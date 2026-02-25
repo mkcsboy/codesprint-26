@@ -172,7 +172,9 @@ export default function GamePage() {
 
               // If they were already playing and no reset happened locally, put them back
               const savedJoinTime = localStorage.getItem(`cs_join_${gameId}`)
-              const currentStatus = gameStateData?.is_active ? 'ACTIVE' : 'WAITING'
+              const eventTableStatus = timers[`${gameId.toLowerCase()}_status`]
+              const currentStatus = eventTableStatus || (gameStateData?.is_active ? 'ACTIVE' : 'WAITING')
+              setTableStatus(currentStatus)
 
               if (rPin && localStorage.getItem(`cs_unlocked_${gameId}`) === rPin) {
                 setIsUnlockedLocally(true)
@@ -221,6 +223,11 @@ export default function GamePage() {
         const timers = newRecord.table_timers || {}
         setRoundStartTime(timers[gameId.toLowerCase() as string] || null)
         setRoundDuration(16)
+
+        const individualStatus = timers[`${gameId.toLowerCase()}_status`]
+        if (individualStatus) {
+          setTableStatus(individualStatus)
+        }
 
         if (newRecord.current_round && newRecord.current_round.startsWith('BROADCAST:')) {
           setBroadcastMessage(newRecord.current_round.replace('BROADCAST:', ''))
@@ -271,7 +278,6 @@ export default function GamePage() {
 
       if (gameStateData && gameStateData.entry_pin !== undefined) {
         setActualPin(gameStateData.entry_pin)
-        setTableStatus(gameStateData.is_active ? 'ACTIVE' : 'WAITING')
       }
 
       if (eventData) {
@@ -280,6 +286,9 @@ export default function GamePage() {
         const rTime = timers[gameId.toLowerCase() as string] || null
         setRoundStartTime(rTime)
         setRoundDuration(16)
+
+        const tableStatusStr = timers[`${gameId.toLowerCase()}_status`] || (gameStateData?.is_active ? 'ACTIVE' : 'WAITING')
+        setTableStatus(tableStatusStr)
 
         if (eventData.current_round && eventData.current_round.startsWith('BROADCAST:')) {
           setBroadcastMessage(eventData.current_round.replace('BROADCAST:', ''))
@@ -366,7 +375,10 @@ export default function GamePage() {
       if (diff <= 0) {
         setTimeLeft("00:00")
         clearInterval(interval)
-        alert(`⏰ TIME OUT! The 15 minutes have expired limit reached. Your team lost this game.`)
+        alert(`⏰ TIME OUT! The 15 minutes have expired. Your team lost this game.`)
+        if (teamId) {
+          import('@/app/actions').then(({ unlockPlayer }) => unlockPlayer(teamId))
+        }
         router.push('/map')
       } else {
         const m = Math.floor(diff / 60000)
@@ -513,7 +525,7 @@ export default function GamePage() {
 
         {/* EVENT OVERLAYS */}
         {(isPaused || tableStatus === 'PAUSED') && (
-          <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex flex-col items-center justify-center pointer-events-auto">
+          <div className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-md flex flex-col items-center justify-center pointer-events-auto">
             <h1 className="text-6xl font-pixel text-red-500 mb-4 animate-bounce">
               {tableStatus === 'PAUSED' ? 'TABLE PAUSED' : 'EVENT PAUSED'}
             </h1>

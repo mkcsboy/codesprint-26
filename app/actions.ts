@@ -99,6 +99,34 @@ export async function fetchQuestionData(gameId: string, difficultyStr: string = 
 // --- NEW: PLACE BET ---
 export async function placeBet(teamId: string, amount: number, gameId: string) {
   try {
+    // 0. Verify Table Status & Expiration
+    const [eventRes, gameStateRes] = await Promise.all([
+      supabaseAdmin.from('event_control').select('table_timers, is_paused').eq('id', 1).single(),
+      supabaseAdmin.from('game_state').select('is_active').eq('game_id', gameId).single()
+    ])
+
+    const eventData = eventRes.data as any
+    const gameStateData = gameStateRes.data as any
+
+    const isGlobalPaused = eventData?.is_paused
+    if (isGlobalPaused) return { error: "The entire casino is currently PAUSED." }
+
+    const timers = (eventData?.table_timers || {}) as Record<string, string>
+    const status = timers[`${gameId}_status`]
+    const startTimeStr = timers[gameId]
+    const isStateActive = gameStateData?.is_active
+
+    if (status === 'KILLED' || isStateActive === false) {
+      return { error: "This table is currently CLOSED by the Pit Boss." }
+    }
+
+    if (startTimeStr) {
+      const startMs = new Date(startTimeStr).getTime()
+      if (Date.now() > startMs + (16 * 60000)) {
+        return { error: "The round for this table has already ended! You cannot join." }
+      }
+    }
+
     // 1. Get current balance
     const { data: teamData, error: fetchError } = await supabaseAdmin
       .from('teams')

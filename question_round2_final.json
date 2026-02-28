@@ -1,0 +1,26 @@
+[
+    {
+        "game_type": "FINAL",
+        "difficulty": "STANDARD",
+        "title": "ALL-IN FINALE: Alaric's Magical Stones",
+        "problem_statement": "In the mystical kingdom of Aetheria, there was a powerful wizard named Alaric who had spent many years mastering the art of magical spells. His magic was contained within a set of enchanted stones, each holding a unique magical property. These magical properties were represented by an array of integers, magic_spells, where each element indicated the strength of the spell contained in the stone.\n\nAlaric had reached an extraordinary level of power, but there was one obstacle preventing him from fully unlocking his abilities. To tap into the true potential of his spells, all the magical stones needed to have identical magical properties. However, each stone had its own unique characteristics, and altering their magical properties was no simple task.\n\nThe challenge was that the time required to change the magical power of each stone by 1 unit differed. The time it would take to increase or decrease the power of a stone was represented by the array time_taken, where the i-th element indicated the number of days it would take to change the magical power of the i-th stone by a single unit.\n\nAlaric knew that he needed to equalize the magical properties of all the stones in order to unleash his full power, but there was a catch. The process was time-consuming, and he could only work for a limited number of days, represented by k.\n\nThe wizard needed to decide whether it was possible to adjust the magical properties of all the stones within the given time limit. Each operation of increasing or decreasing a stone’s magical power would consume days from the available time, and Alaric had to plan carefully.\n\nYour task is to assist Alaric by determining if it's possible to equalize the magical properties of all the spells within k days. If it is, return \"True\", otherwise return \"False\".\n\nInput Format:\nThe first line contains an integer n and k.\nThe second line contains n space-separated integers representing the magicSpell array.\nThe third line contains n space-separated integers representing the timeTaken array.\n\nOutput Format:\nPrint \"True\" if it's possible to equalize all elements of magicSpell within k days. Print \"False\" if it's not possible.",
+        "starter_code": "import sys\n\ndef solve():\n    # Read all inputs from standard input\n    input_data = sys.stdin.read().split()\n    if not input_data:\n        return\n    \n    n = int(input_data)\n    k = int(input_data)\n    magic_spells = [int(x) for x in input_data[2:n+2]]\n    time_taken = [int(x) for x in input_data[n+2:2*n+2]]\n    \n    # Write your optimization logic here\n    \n\nif __name__ == '__main__':\n    solve()",
+        "constraints": "O(N log N) required. Brute force will TLE.",
+        "test_cases": [
+            {
+                "input": "4 9\n1 3 5 2\n2 3 1 14",
+                "expected": "True\n"
+            },
+            {
+                "input": "5 10\n1 2 3 4 5\n5 4 3 2 1",
+                "expected": "False\n"
+            },
+            {
+                "input": "3 100\n10 20 30\n1 1 1",
+                "expected": "True\n"
+            }
+        ],
+        "is_used": false,
+        "is_active": true
+    }
+]

@@ -29,11 +29,22 @@ export async function loginAction(prevState: any, formData: FormData) {
   }
 
   // 2. Cast data to our manual type (The Fix)
-  const team = data as TeamRow | null
+  const team = data as (TeamRow & { is_logged_in?: boolean }) | null
 
   if (!team) {
     return { error: "INVALID CODE" }
   }
+
+  if (team.is_logged_in) {
+    return { error: "TEAM IS ALREADY LOGGED IN ON ANOTHER DEVICE." }
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const payload: any = { is_logged_in: true };
+  await supabaseAdmin
+    .from('teams')
+    .update(payload)
+    .eq('id', team.id)
 
   // 3. Set Session
   cookies().set('team_id', team.id, {
@@ -44,6 +55,18 @@ export async function loginAction(prevState: any, formData: FormData) {
 
   // 4. Redirect
   redirect('/avatar')
+}
+
+export async function logoutAction(teamId: string) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const payload: any = { is_logged_in: false };
+  await supabaseAdmin
+    .from('teams')
+    .update(payload)
+    .eq('id', teamId)
+
+  cookies().delete('team_id')
+  redirect('/')
 }
 
 export async function getTeamId() {
@@ -200,4 +223,34 @@ export async function fetchTeamHistory(teamId: string) {
   } catch {
     return { error: "System error fetching history." };
   }
+}
+
+// --- NEW: ROUND 2 PORTAL & BETTING LOGIC ---
+export async function updateRound2Status(teamId: string, inRound2: boolean = true) {
+  const payload: any = { in_round_2: inRound2 }
+  // @ts-ignore
+  await supabaseAdmin.from('teams').update(payload).eq('id', teamId)
+}
+
+export async function submitFinalBet(teamId: string, amount: number) {
+  // 1. Deduct from wallet_balance
+  // 2. Add round_2_bet
+  // @ts-ignore
+  const { data: team } = await supabaseAdmin.from('teams').select('wallet_balance').eq('id', teamId).single()
+  if (!team) return { error: 'Team not found' }
+  const newBalance = (team.wallet_balance || 0) - amount
+  if (newBalance < 0) return { error: 'Insufficient funds' }
+
+  const payload: any = { wallet_balance: newBalance, round_2_bet: amount }
+  // @ts-ignore
+  await supabaseAdmin.from('teams').update(payload).eq('id', teamId)
+
+  // Log transaction
+  const txPayload: any = {
+    team_id: teamId,
+    amount: -Math.abs(amount),
+    description: `Placed Final Round Wager: ALL IN`
+  }
+  // @ts-ignore
+  await supabaseAdmin.from('transactions').insert(txPayload)
 }

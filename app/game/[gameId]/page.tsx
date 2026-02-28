@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import CodeEditor from '@/components/CodeEditor'
 import { supabase } from '@/lib/supabase/client'
+import LogoutButton from '@/components/LogoutButton'
 
 // --- CONFIGURATION ---
 const GAME_CONFIG = {
@@ -54,9 +55,16 @@ print(solve(10))`
     bg: 'bg-purple-900/20',
     description: "Pass the hidden edge cases.",
     rules: ["Handle weird inputs.", "Pass all 5 hidden tests."],
-    starter: `def roll_dice(val):
-    return val`
+    starter: `def roll_dice(val):\n    return val`
   },
+  final: {
+    title: 'FINAL ROUND: ALL IN',
+    color: 'text-retro-gold',
+    bg: 'bg-[#1a1b26]/80',
+    description: "The ultimate algorithm challenge. Optimize or perish.",
+    rules: ["O(N log N) required.", "Brute force will TLE."],
+    starter: `import sys\n\ndef solve():\n    pass\n\nif __name__ == '__main__':\n    solve()`
+  }
 }
 
 const ROULETTE_OPTIONS = [
@@ -333,7 +341,9 @@ export default function GamePage() {
     if (phase === 'GAME' && !dynamicConfig) {
       const loadQuestion = async () => {
         const { fetchQuestionData } = await import('@/app/actions')
-        const diff = difficulty || localStorage.getItem(`cs_diff_${gameId}`) || 'STANDARD'
+        let diff = difficulty || localStorage.getItem(`cs_diff_${gameId}`) || 'STANDARD'
+        if (gameId === 'final') diff = 'STANDARD' // Bypass betting phase lack of state
+
         const res = await fetchQuestionData(gameId, diff as string)
         if (res.success && res.question) {
           setDynamicConfig({
@@ -447,7 +457,9 @@ export default function GamePage() {
     try {
       // 1. Fetch constraints and hidden tests from Supabase Action
       const { fetchQuestionData } = await import('@/app/actions')
-      const diff = difficulty || localStorage.getItem(`cs_diff_${gameId}`) || 'STANDARD'
+      let diff = difficulty || localStorage.getItem(`cs_diff_${gameId}`) || 'STANDARD'
+      if (gameId === 'final') diff = 'STANDARD'
+
       const questionRes = await fetchQuestionData(gameId, diff as string)
 
       if (questionRes.error || !questionRes.question) {
@@ -595,6 +607,9 @@ export default function GamePage() {
             <div className={`px-4 py-1 rounded border border-blue-500 text-blue-400 font-bold bg-blue-900/20 tracking-wider`}>
               ⏳ {timeLeft}
             </div>
+            {teamId && (
+              <LogoutButton teamId={teamId} />
+            )}
           </div>
         </div>
 
@@ -615,28 +630,28 @@ export default function GamePage() {
                   {dynamicConfig ? dynamicConfig.description : (gameId === 'roulette' ? "Predict the output." : "Write a Python script to solve the problem.")}
                 </p>
                 {gameId === 'roulette' && (
-                  <div className="bg-black p-4 mt-4 rounded border border-gray-600 font-mono text-xs">
-                    x = 3<br />y = 5<br />for i in range(1, 4):...
+                  <div className="bg-black p-4 mt-4 rounded border border-gray-600 font-mono text-xs whitespace-pre-wrap">
+                    {dynamicConfig ? dynamicConfig.starter : "x = 3\ny = 5\nfor i in range(1, 4):..."}
                   </div>
                 )}
               </div>
 
               {/* TEST CASES VISUALIZER */}
-              {dynamicConfig?.test_cases && dynamicConfig.test_cases.length > 0 && (
+              {dynamicConfig?.test_cases && dynamicConfig.test_cases.length > 0 && gameId !== 'roulette' && (
                 <div className="mt-4 border-t border-white/10 pt-4">
                   <h3 className="text-sm font-bold text-gray-400 mb-3 uppercase tracking-wider">Test Cases</h3>
                   <div className="space-y-3">
                     {dynamicConfig.test_cases.map((tc: any, i: number) => (
                       <div key={i} className="bg-black/50 border border-gray-700 rounded p-3 font-mono text-[10px] md:text-xs">
                         {tc.input && (
-                          <div className="mb-1">
-                            <span className="text-blue-400">Input: </span>
-                            <span className="text-gray-300">{tc.input}</span>
+                          <div className="mb-2">
+                            <span className="text-blue-400 font-bold block mb-1">Input:</span>
+                            <div className="text-gray-300 whitespace-pre-wrap bg-black/40 p-2 rounded border border-gray-800">{tc.input}</div>
                           </div>
                         )}
                         <div>
-                          <span className="text-green-400">Expected: </span>
-                          <span className="text-gray-300">{tc.expected}</span>
+                          <span className="text-green-400 font-bold block mb-1">Expected:</span>
+                          <div className="text-gray-300 whitespace-pre-wrap bg-black/40 p-2 rounded border border-gray-800">{tc.expected}</div>
                         </div>
                       </div>
                     ))}
@@ -743,6 +758,8 @@ export default function GamePage() {
 
           {isBetting ? (
             <div className="mt-12 text-2xl font-mono text-retro-gold animate-pulse">PROCESSING BET...</div>
+          ) : gameId === 'final' ? (
+            <div className="mt-12 text-2xl font-mono text-retro-gold animate-pulse">LOADING FINAL ROUND...</div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-12">
               <div onClick={() => handleBet('STANDARD')} className="group cursor-pointer bg-[#1a1a24] border-4 border-gray-700 hover:border-green-500 p-8 rounded-xl transition-all hover:-translate-y-2 relative">
@@ -779,7 +796,16 @@ export default function GamePage() {
           </div>
           <div className="flex gap-4">
             <button onClick={() => router.back()} className="flex-1 px-4 py-3 border-2 border-gray-600 text-gray-400 hover:bg-gray-800 font-bold rounded uppercase text-sm">Cancel</button>
-            <button onClick={() => setPhase('BETTING')} className={`flex-1 px-4 py-3 bg-white text-black hover:bg-gray-200 font-bold rounded uppercase text-sm border-b-4 border-gray-400 active:border-b-0 active:translate-y-1`}>I Understand →</button>
+            <button onClick={() => {
+              if (gameId === 'final') {
+                setDifficulty('STANDARD')
+                localStorage.setItem(`cs_diff_${gameId}`, 'STANDARD')
+                setJoinedAt(Date.now())
+                setPhase('WAITING')
+              } else {
+                setPhase('BETTING')
+              }
+            }} className={`flex-1 px-4 py-3 bg-white text-black hover:bg-gray-200 font-bold rounded uppercase text-sm border-b-4 border-gray-400 active:border-b-0 active:translate-y-1`}>I Understand →</button>
           </div>
         </div>
       </div>

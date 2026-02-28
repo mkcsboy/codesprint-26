@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation' // <--- Added Router
 import { supabase } from '@/lib/supabase/client'
 import { AVATAR_LIST, getAvatarUrl } from '@/lib/avatars'
+import LogoutButton from '@/components/LogoutButton'
 
 // --- CONFIGURATION ---
 const CELL = 40 // px
@@ -23,7 +24,7 @@ const TABLES = [
     chairs: [
       { id: 'c1', x: 3, y: 4 }, { id: 'c2', x: 3, y: 5 },
       { id: 'c3', x: 7, y: 4 }, { id: 'c4', x: 7, y: 5 },
-      { id: 'c5', x: 5, y: 6 },
+      { id: 'c5', x: 5, y: 6 }, { id: 'c6', x: 6, y: 6 },
     ],
     dealers: [{ x: 5, y: 3 }, { x: 6, y: 3 }]
   },
@@ -34,7 +35,7 @@ const TABLES = [
     chairs: [
       { id: 'c1', x: 15, y: 4 }, { id: 'c2', x: 15, y: 5 },
       { id: 'c3', x: 19, y: 4 }, { id: 'c4', x: 19, y: 5 },
-      { id: 'c5', x: 17, y: 6 },
+      { id: 'c5', x: 17, y: 6 }, { id: 'c6', x: 18, y: 6 },
     ],
     dealers: [{ x: 17, y: 3 }, { x: 18, y: 3 }]
   },
@@ -47,7 +48,7 @@ const TABLES = [
     chairs: [
       { id: 'c1', x: 9, y: 9 }, { id: 'c2', x: 9, y: 10 },
       { id: 'c3', x: 13, y: 9 }, { id: 'c4', x: 13, y: 10 },
-      { id: 'c5', x: 11, y: 11 },
+      { id: 'c5', x: 11, y: 11 }, { id: 'c6', x: 12, y: 11 },
     ],
     dealers: [{ x: 11, y: 8 }, { x: 12, y: 8 }]
   },
@@ -60,7 +61,7 @@ const TABLES = [
     chairs: [
       { id: 'c1', x: 3, y: 14 }, { id: 'c2', x: 3, y: 15 },
       { id: 'c3', x: 7, y: 14 }, { id: 'c4', x: 7, y: 15 },
-      { id: 'c5', x: 5, y: 16 },
+      { id: 'c5', x: 5, y: 16 }, { id: 'c6', x: 6, y: 16 },
     ],
     dealers: [{ x: 5, y: 13 }, { x: 6, y: 13 }]
   },
@@ -71,7 +72,7 @@ const TABLES = [
     chairs: [
       { id: 'c1', x: 15, y: 14 }, { id: 'c2', x: 15, y: 15 },
       { id: 'c3', x: 19, y: 14 }, { id: 'c4', x: 19, y: 15 },
-      { id: 'c5', x: 17, y: 16 },
+      { id: 'c5', x: 17, y: 16 }, { id: 'c6', x: 18, y: 16 },
     ],
     dealers: [{ x: 17, y: 13 }, { x: 18, y: 13 }]
   }
@@ -82,7 +83,20 @@ interface MapClientProps {
     id: string
     wallet_balance: number
     avatar_id: number
+    in_round_2?: boolean
   }
+}
+
+const FINAL_TABLE = {
+  id: 'FINAL', label: 'FINAL ROUND (ALL IN)',
+  route: 'final',
+  x: 10, y: 8,
+  chairs: [
+    { id: 'c1', x: 9, y: 8 }, { id: 'c2', x: 9, y: 9 }, // 2 on left
+    { id: 'c3', x: 10, y: 10 }, { id: 'c4', x: 11, y: 10 }, { id: 'c5', x: 12, y: 10 }, // 3 on bottom
+    { id: 'c6', x: 13, y: 8 }, { id: 'c7', x: 13, y: 9 }, // 2 on right
+  ],
+  dealers: [{ x: 11, y: 7 }, { x: 12, y: 7 }]
 }
 
 type Player = {
@@ -98,6 +112,13 @@ export default function MapClient({ userData }: MapClientProps) {
   const [direction, setDirection] = useState<'left' | 'right'>('right')
   const [otherPlayers, setOtherPlayers] = useState<Record<string, Player>>({})
   const [nearTable, setNearTable] = useState<string | null>(null) // Stores 'slots', 'poker', etc.
+
+  // --- ROUND 2 STATE ---
+  const [inRound2, setInRound2] = useState<boolean>(userData.in_round_2 || false)
+  const [isRound2Open, setIsRound2Open] = useState<boolean>(false)
+  const [showBetModal, setShowBetModal] = useState<boolean>(false)
+  const [betAmount, setBetAmount] = useState<number | ''>(() => Math.min(500, userData.wallet_balance))
+  const [isBetting, setIsBetting] = useState<boolean>(false)
 
   // --- HUD STATE ---
   const [walletBalance, setWalletBalance] = useState<number>(userData.wallet_balance)
@@ -136,15 +157,33 @@ export default function MapClient({ userData }: MapClientProps) {
   // --- COLLISION LOGIC ---
   const isBlocked = (x: number, y: number) => {
     if (x < 0 || x >= GRID_W || y < 0 || y >= GRID_H) return true
-    for (const t of TABLES) {
+
+    // Switch active topology
+    const activeTables = inRound2 ? [FINAL_TABLE] : TABLES
+
+    for (const t of activeTables) {
       if (x >= t.x && x <= t.x + 2 && y >= t.y && y <= t.y + 1) return true
     }
-    for (const t of TABLES) {
+    for (const t of activeTables) {
       for (const d of t.dealers) {
         if (x === d.x && y === d.y) return true
       }
     }
     return false
+  }
+
+  const handleTeleportToRound2 = async () => {
+    setInRound2(true)
+    setPosition({ x: 1, y: 9 }) // Spawn in near left door
+    const { updateRound2Status } = await import('@/app/actions')
+    await updateRound2Status(userData.id, true)
+  }
+
+  const handleTeleportToRound1 = async () => {
+    setInRound2(false)
+    setPosition({ x: 22, y: 9 }) // Spawn near right door
+    const { updateRound2Status } = await import('@/app/actions')
+    await updateRound2Status(userData.id, false)
   }
 
   // --- MULTIPLAYER P2P SYNC ---
@@ -225,6 +264,15 @@ export default function MapClient({ userData }: MapClientProps) {
     const eventChannel = supabase.channel('map_event_updates')
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'event_control', filter: 'id=eq.1' }, (payload) => {
         const newRecord = payload.new as any
+
+        // Force teleport players out if the portal closes while they are inside
+        const portalNowClosed = newRecord.round_2_open === false
+        setIsRound2Open(!portalNowClosed)
+
+        if (inRound2 && portalNowClosed) {
+          handleTeleportToRound1()
+        }
+
         if (newRecord.current_round && newRecord.current_round.startsWith('BROADCAST:')) {
           setBroadcastMessage(newRecord.current_round.replace('BROADCAST:', ''))
         } else {
@@ -235,8 +283,15 @@ export default function MapClient({ userData }: MapClientProps) {
 
     // 5-Second Polling Fallback (Failsafe)
     const pollInterval = setInterval(async () => {
-      const eventData = await supabase.from('event_control').select('current_round').eq('id', 1).maybeSingle().then(res => res.data as any)
+      const eventData = await supabase.from('event_control').select('current_round, round_2_open').eq('id', 1).maybeSingle().then(res => res.data as any)
       if (eventData) {
+        const portalNowClosed = eventData.round_2_open === false
+        setIsRound2Open(!portalNowClosed)
+
+        if (inRound2 && portalNowClosed) {
+          handleTeleportToRound1()
+        }
+
         if (eventData.current_round && eventData.current_round.startsWith('BROADCAST:')) {
           setBroadcastMessage(eventData.current_round.replace('BROADCAST:', ''))
         } else {
@@ -249,7 +304,7 @@ export default function MapClient({ userData }: MapClientProps) {
       supabase.removeChannel(eventChannel)
       clearInterval(pollInterval)
     }
-  }, [])
+  }, [inRound2])
 
   // --- MOVEMENT ---
   useEffect(() => {
@@ -271,12 +326,24 @@ export default function MapClient({ userData }: MapClientProps) {
 
         // Check for Chair "Snapping"
         let foundTableRoute = null
-        for (const t of TABLES) {
+        const activeTables = inRound2 ? [FINAL_TABLE] : TABLES
+        for (const t of activeTables) {
           if (t.chairs.some(c => c.x === newPos.x && c.y === newPos.y)) {
             foundTableRoute = t.route // <--- Capture the route (e.g., 'slots')
           }
         }
         setNearTable(foundTableRoute)
+
+        // Portal Teleportation Logic
+        if (!inRound2 && newPos.x === 22 && newPos.y >= 8 && newPos.y <= 10) {
+          if (isRound2Open) handleTeleportToRound2()
+          return prev // Don't let character move visually into the wall
+        }
+
+        if (inRound2 && newPos.x === 1 && newPos.y >= 8 && newPos.y <= 10) {
+          if (isRound2Open) handleTeleportToRound1()
+          return prev // Don't let character move visually into the wall
+        }
 
         // Broadcast Position
         const now = Date.now()
@@ -299,14 +366,18 @@ export default function MapClient({ userData }: MapClientProps) {
 
       // --- NAVIGATION TRIGGER ---
       if (e.key === 'Enter' && nearTable) {
-        // Redirect to the Game Page
-        router.push(`/game/${nearTable}`)
+        if (nearTable === 'final') {
+          setShowBetModal(true)
+        } else {
+          // Redirect to the Game Page
+          router.push(`/game/${nearTable}`)
+        }
       }
     }
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [nearTable, direction, userData.id, userData.avatar_id, router]) // Added router to dependency
+  }, [nearTable, direction, userData.id, userData.avatar_id, router, inRound2, isRound2Open])
 
   return (
     <div className="flex w-full h-screen bg-[#1a1a24] select-none overflow-hidden relative">
@@ -318,6 +389,59 @@ export default function MapClient({ userData }: MapClientProps) {
             <h1 className="text-4xl md:text-6xl font-pixel text-red-500 bg-red-900/40 p-10 rounded-2xl border-4 border-red-500 shadow-[0_0_100px_rgba(239,68,68,0.6)]">
               ⚠️ WARNING FROM PIT BOSS ⚠️
             </h1>
+          </div>
+        </div>
+      )}
+
+      {/* BETTING MODAL FOR FINAL ROUND */}
+      {showBetModal && (
+        <div className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-sm flex items-center justify-center pointer-events-auto p-4 animate-fade-in">
+          <div className="bg-[#1a1a24] border-2 border-retro-gold shadow-[0_0_50px_rgba(234,179,8,0.2)] rounded-xl p-8 max-w-md w-full space-y-6">
+            <h2 className="text-3xl font-pixel text-retro-gold text-center tracking-widest">FINAL WAGER</h2>
+            <div className="space-y-4">
+              <p className="font-mono text-sm text-gray-300 text-center leading-relaxed">
+                Minimum Bet: <b className="text-yellow-400">500 Credits</b><br />
+                Your Balance: <b className="text-green-400">${walletBalance}</b>
+              </p>
+              <div className="bg-black/50 p-6 rounded-lg border border-white/5">
+                <input
+                  type="number"
+                  min="500"
+                  max={walletBalance}
+                  value={betAmount === '' ? '' : betAmount}
+                  onChange={(e) => {
+                    const val = e.target.value
+                    if (val === '') setBetAmount('')
+                    else setBetAmount(Number(val))
+                  }}
+                  className="w-full bg-transparent border-b-2 border-retro-gold/50 font-mono text-center text-4xl py-2 text-retro-gold focus:outline-none focus:border-retro-gold transition-colors"
+                />
+              </div>
+            </div>
+            <div className="flex gap-4 pt-4">
+              <button
+                onClick={() => setShowBetModal(false)}
+                className="flex-1 py-3 bg-[#2a2b38] border border-gray-600 hover:border-gray-400 text-gray-300 font-pixel text-xs rounded transition-colors"
+                disabled={isBetting}
+              >
+                BACK OUT
+              </button>
+              <button
+                onClick={async () => {
+                  const finalBet = Number(betAmount)
+                  if (isNaN(finalBet) || finalBet < 500) { alert('Minimum bet is 500 credits.'); return; }
+                  if (finalBet > walletBalance) { alert('Insufficient funds.'); return; }
+                  setIsBetting(true)
+                  const { submitFinalBet } = await import('@/app/actions')
+                  await submitFinalBet(userData.id, finalBet)
+                  router.push('/game/final')
+                }}
+                disabled={isBetting}
+                className="flex-1 py-3 bg-retro-gold text-black hover:bg-yellow-400 font-pixel text-xs rounded transition-colors shadow-[0_0_15px_rgba(234,179,8,0.5)] uppercase tracking-widest"
+              >
+                {isBetting ? 'LOADING...' : 'ALL IN'}
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -348,6 +472,13 @@ export default function MapClient({ userData }: MapClientProps) {
             ))}
           </div>
         </div>
+
+        <div className="mt-auto pt-4">
+          <LogoutButton
+            teamId={userData.id}
+            className="w-full px-4 py-3 bg-red-900 border border-red-500 text-red-100 font-pixel text-[10px] rounded hover:bg-red-800 transition-colors shadow-[0_0_15px_rgba(239,68,68,0.5)] hover:scale-105 active:scale-95 uppercase tracking-widest"
+          />
+        </div>
       </div>
 
       {/* CENTER: GAME ROOM */}
@@ -360,8 +491,47 @@ export default function MapClient({ userData }: MapClientProps) {
           style={{ width: GRID_W * CELL, height: GRID_H * CELL, minWidth: GRID_W * CELL, minHeight: GRID_H * CELL }}
         >
 
+          {/* MAP WATERMARK */}
+          <div className="absolute top-8 left-1/2 -translate-x-1/2 pointer-events-none flex opacity-40">
+            <h1 className="text-[40px] font-pixel text-gray-700 whitespace-nowrap tracking-widest">
+              {inRound2 ? 'ROUND 2' : 'ROUND 1'}
+            </h1>
+          </div>
+
+          {/* ROUND 1 -> ROUND 2 PORTAL */}
+          {!inRound2 && (
+            <div className={`absolute z-10 transition-all overflow-hidden shadow-lg
+                  ${isRound2Open
+                ? 'border-4 border-red-500 bg-black animate-pulse shadow-[0_0_50px_rgba(239,68,68,0.8)]'
+                : 'border-2 border-gray-600 bg-gray-900 opacity-80'}`}
+              style={{ left: 22 * CELL, top: 8 * CELL, width: CELL, height: CELL * 3 }}>
+              <div className="w-full h-full flex items-center justify-center">
+                <div className={`font-pixel text-[8px] rotate-90 whitespace-nowrap tracking-widest
+                      ${isRound2Open ? 'text-red-500' : 'text-gray-500'}`}>
+                  {isRound2Open ? 'ALL IN PORTAL' : 'LOCKED'}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ROUND 2 -> ROUND 1 PORTAL */}
+          {inRound2 && (
+            <div className={`absolute z-10 transition-all overflow-hidden shadow-lg
+                  ${isRound2Open
+                ? 'border-4 border-blue-500 bg-black animate-pulse shadow-[0_0_50px_rgba(59,130,246,0.8)]'
+                : 'border-2 border-gray-600 bg-gray-900 opacity-80'}`}
+              style={{ left: 1 * CELL, top: 8 * CELL, width: CELL, height: CELL * 3 }}>
+              <div className="w-full h-full flex items-center justify-center">
+                <div className={`font-pixel text-[8px] -rotate-90 whitespace-nowrap tracking-widest
+                      ${isRound2Open ? 'text-blue-500' : 'text-gray-500'}`}>
+                  {isRound2Open ? 'RETURN PORTAL' : 'LOCKED'}
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* 1. RENDER TABLES */}
-          {TABLES.map(t => (
+          {(inRound2 ? [FINAL_TABLE] : TABLES).map(t => (
             <div key={t.id} className="absolute z-10"
               style={{
                 left: t.x * CELL, top: t.y * CELL,
@@ -380,7 +550,7 @@ export default function MapClient({ userData }: MapClientProps) {
           ))}
 
           {/* 2. RENDER DEALERS */}
-          {TABLES.map(t => t.dealers.map((d, i) => (
+          {(inRound2 ? [FINAL_TABLE] : TABLES).map(t => t.dealers.map((d, i) => (
             <div key={`d-${t.id}-${i}`} className="absolute z-10"
               style={{ left: d.x * CELL, top: d.y * CELL, width: CELL, height: CELL }}
             >
@@ -390,7 +560,7 @@ export default function MapClient({ userData }: MapClientProps) {
           )))}
 
           {/* 3. RENDER CHAIRS */}
-          {TABLES.map(t => t.chairs.map((c, i) => (
+          {(inRound2 ? [FINAL_TABLE] : TABLES).map(t => t.chairs.map((c, i) => (
             <div key={`c-${t.id}-${i}`} className="absolute"
               style={{ left: c.x * CELL, top: c.y * CELL, width: CELL, height: CELL }}
             >

@@ -4,6 +4,7 @@ import { selectAvatarAction } from './actions'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { Check, Lock } from 'lucide-react'
+import LogoutButton from '@/components/LogoutButton'
 
 // FIX: Define the shape of the data we expect from the DB
 type TeamData = {
@@ -48,21 +49,27 @@ export default async function AvatarSelectionPage() {
 
   return (
     <div className="min-h-screen bg-[#1a1a24] text-white p-8 font-pixel animate-fade-in">
-      
+
       {/* HEADER */}
-      <div className="max-w-6xl mx-auto text-center mb-12 space-y-4">
-        <h1 className="text-3xl md:text-5xl text-retro-gold drop-shadow-[4px_4px_0_#000]">
-          CHOOSE YOUR IDENTITY
-        </h1>
-        <p className="text-gray-400 text-xs md:text-sm tracking-widest uppercase">
-          Each avatar can only be claimed by one team. Choose wisely.
-        </p>
+      <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between mb-12 gap-6 relative">
+        <div className="flex-1"></div>
+        <div className="text-center space-y-4 flex-1">
+          <h1 className="text-3xl md:text-5xl text-retro-gold drop-shadow-[4px_4px_0_#000] whitespace-nowrap">
+            CHOOSE YOUR IDENTITY
+          </h1>
+          <p className="text-gray-400 text-xs md:text-sm tracking-widest uppercase">
+            Each avatar can only be claimed by one team. Choose wisely.
+          </p>
+        </div>
+        <div className="flex-1 flex justify-end items-center h-full">
+          <LogoutButton teamId={myTeamId} />
+        </div>
       </div>
 
       {/* AVATAR GRID */}
       <div className="max-w-6xl mx-auto grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-6">
         {AVATAR_LIST.map((avatar) => {
-          
+
           const isTaken = takenAvatars[avatar.id] !== undefined
           const takenByMe = myCurrentAvatar === avatar.id
           const takenByName = takenAvatars[avatar.id]
@@ -72,14 +79,14 @@ export default async function AvatarSelectionPage() {
           return (
             <form key={avatar.id} action={selectAvatarAction} className="relative group">
               <input type="hidden" name="avatar_id" value={avatar.id} />
-              
+
               <button
                 type="submit"
                 disabled={isDisabled}
                 className={`
                   w-full relative p-4 border-4 transition-all duration-200 flex flex-col items-center gap-4
-                  ${isDisabled 
-                    ? 'border-gray-700 bg-gray-900 opacity-50 cursor-not-allowed grayscale' 
+                  ${isDisabled
+                    ? 'border-gray-700 bg-gray-900 opacity-50 cursor-not-allowed grayscale'
                     : takenByMe
                       ? 'border-retro-green bg-retro-green/10 scale-105 shadow-[0_0_20px_#39ff14]'
                       : 'border-white/20 bg-[#2a2b38] hover:border-retro-gold hover:-translate-y-2 hover:shadow-pixel'
@@ -88,12 +95,12 @@ export default async function AvatarSelectionPage() {
               >
                 {/* AVATAR IMAGE */}
                 <div className="relative w-20 h-20">
-                  <img 
-                    src={getAvatarUrl(avatar.seed)} 
+                  <img
+                    src={getAvatarUrl(avatar.seed)}
                     alt={avatar.name}
                     className="w-full h-full rounded-md"
                   />
-                  
+
                   {/* LOCK ICON */}
                   {isDisabled && (
                     <div className="absolute inset-0 flex items-center justify-center bg-black/60 rounded-md">
@@ -114,7 +121,7 @@ export default async function AvatarSelectionPage() {
                   <div className="text-[10px] uppercase font-bold tracking-widest mb-1 truncate">
                     {avatar.name}
                   </div>
-                  
+
                   {isDisabled ? (
                     <div className="text-[8px] bg-red-900/50 text-red-300 py-1 px-2 rounded border border-red-500/30 truncate">
                       ACQUIRED BY: {takenByName}
@@ -140,7 +147,7 @@ export default async function AvatarSelectionPage() {
         {myCurrentAvatar > 0 && (
           <form action={selectAvatarAction}>
             <input type="hidden" name="confirm_entry" value="true" />
-             <button className="bg-retro-green text-black text-xl px-12 py-4 font-bold shadow-pixel hover:scale-105 active:scale-95 transition-transform uppercase">
+            <button className="bg-retro-green text-black text-xl px-12 py-4 font-bold shadow-pixel hover:scale-105 active:scale-95 transition-transform uppercase">
               ENTER THE CASINO &rarr;
             </button>
           </form>

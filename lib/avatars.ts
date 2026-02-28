@@ -26,7 +26,12 @@ export const AVATAR_LIST = [
   { id: 23, seed: 'Fox', name: 'Pilot' },
   { id: 24, seed: 'Falco', name: 'Ace' },
   { id: 25, seed: 'Yoshi', name: 'Dino' },
+  { id: 26, seed: 'Bowser', name: 'Boss' },
+  { id: 27, seed: 'Peach', name: 'Monarch' },
+  { id: 28, seed: 'Luigi', name: 'Brother' },
+  { id: 29, seed: 'Toad', name: 'Mushroom' },
+  { id: 30, seed: 'Wario', name: 'Rival' },
 ]
 
-export const getAvatarUrl = (seed: string) => 
+export const getAvatarUrl = (seed: string) =>
   `https://api.dicebear.com/9.x/pixel-art/svg?seed=${seed}&backgroundColor=b6e3f4`

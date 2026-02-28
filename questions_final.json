@@ -1,0 +1,978 @@
+[
+  {
+    "game_type": "CRAPS",
+    "difficulty": "STANDARD",
+    "title": "Case One",
+    "problem_statement": "A number is called special if it has exactly 2 digits, one digit is even and the other is odd, and it appears more than once in the list. Given a list of numbers, print all such special numbers.",
+    "starter_code": "def special_numbers(nums):\n    pass\n\nprint(special_numbers())",
+    "test_cases": [
+      {
+        "expected": ""
+      }
+    ],
+    "is_used": false,
+    "is_active": true
+  },
+  {
+    "game_type": "CRAPS",
+    "difficulty": "STANDARD",
+    "title": "Case Two",
+    "problem_statement": "Given a list of integers and a target value k, count how many pairs (i, j) with i < j have nums[i] + nums[j] == k.",
+    "starter_code": "def count_pairs(nums, k):\n    pass\n\nprint(count_pairs([1, 5, 7, -1, 5], 6))",
+    "test_cases": [
+      {
+        "expected": "3"
+      }
+    ],
+    "is_used": false,
+    "is_active": true
+  },
+  {
+    "game_type": "CRAPS",
+    "difficulty": "STANDARD",
+    "title": "Case Three",
+    "problem_statement": "Given a list of distinct integers, check if it is sorted in non-decreasing order and then rotated some number of times. Print 'YES' or 'NO'.",
+    "starter_code": "def is_sorted_rotated(nums):\n    pass\n\nprint(is_sorted_rotated())",
+    "test_cases": [
+      {
+        "expected": "YES"
+      }
+    ],
+    "is_used": false,
+    "is_active": true
+  },
+  {
+    "game_type": "CRAPS",
+    "difficulty": "STANDARD",
+    "title": "Case Four",
+    "problem_statement": "Given a list of integers and an integer k, count how many subarrays have sum exactly equal to k.",
+    "starter_code": "def count_subarrays(nums, k):\n    pass\n\nprint(count_subarrays(, 3))",
+    "test_cases": [
+      {
+        "expected": "2"
+      }
+    ],
+    "is_used": false,
+    "is_active": true
+  },
+  {
+    "game_type": "CRAPS",
+    "difficulty": "STANDARD",
+    "title": "Case Five",
+    "problem_statement": "Given an integer n, repeatedly replace it with the sum of its digits until it becomes a single digit. Return that digit.",
+    "starter_code": "def digit_transform(n):\n    pass\n\nprint(digit_transform(9875))",
+    "test_cases": [
+      {
+        "expected": "2"
+      }
+    ],
+    "is_used": false,
+    "is_active": true
+  },
+  {
+    "game_type": "CRAPS",
+    "difficulty": "STANDARD",
+    "title": "Case Six",
+    "problem_statement": "Given a list of integers, find the absolute difference between the sum of the elements and the sum of all their digits.",
+    "starter_code": "def diff_sum(nums):\n    pass\n\nprint(diff_sum())",
+    "test_cases": [
+      {
+        "expected": "9"
+      }
+    ],
+    "is_used": false,
+    "is_active": true
+  },
+  {
+    "game_type": "CRAPS",
+    "difficulty": "STANDARD",
+    "title": "Case Seven",
+    "problem_statement": "A number is balanced if the count of even digits equals the count of odd digits and it appears more than once. Print all balanced numbers.",
+    "starter_code": "def balanced_numbers(nums):\n    pass\n\nprint(balanced_numbers())",
+    "test_cases": [
+      {
+        "expected": ""
+      }
+    ],
+    "is_used": false,
+    "is_active": true
+  },
+  {
+    "game_type": "CRAPS",
+    "difficulty": "STANDARD",
+    "title": "Case Eight",
+    "problem_statement": "A number is a prime-digit number if all its digits are prime digits (2,3,5,7) and it appears more than once. Find all such numbers.",
+    "starter_code": "def prime_digit_numbers(nums):\n    pass\n\nprint(prime_digit_numbers())",
+    "test_cases": [
+      {
+        "expected": ""
+      }
+    ],
+    "is_used": false,
+    "is_active": true
+  },
+  {
+    "game_type": "CRAPS",
+    "difficulty": "HIGH",
+    "title": "Case One",
+    "problem_statement": "Given a list of integers, count the number of subarrays whose sum is divisible by k.",
+    "starter_code": "def count_divisible_subarrays(nums, k):\n    pass\n\nprint(count_divisible_subarrays([4,5,0,-2,-3,1], 5))",
+    "test_cases": [
+      {
+        "expected": "7"
+      }
+    ],
+    "is_used": false,
+    "is_active": true
+  },
+  {
+    "game_type": "CRAPS",
+    "difficulty": "HIGH",
+    "title": "Case Two",
+    "problem_statement": "Given a list of integers, find the maximum sum of any contiguous subarray.",
+    "starter_code": "def max_subarray_sum(nums):\n    pass\n\nprint(max_subarray_sum([-2,1,-3,4,-1,2,1,-5,4]))",
+    "test_cases": [
+      {
+        "expected": "6"
+      }
+    ],
+    "is_used": false,
+    "is_active": true
+  },
+  {
+    "game_type": "CRAPS",
+    "difficulty": "HIGH",
+    "title": "Case Three",
+    "problem_statement": "Given a list of integers, count how many subarrays have sum exactly equal to k.",
+    "starter_code": "def subarray_sum(nums, k):\n    pass\n\nprint(subarray_sum(, 2))",
+    "test_cases": [
+      {
+        "expected": "2"
+      }
+    ],
+    "is_used": false,
+    "is_active": true
+  },
+  {
+    "game_type": "CRAPS",
+    "difficulty": "HIGH",
+    "title": "Case Four",
+    "problem_statement": "Given a list of integers, return True if there exists a contiguous subarray with sum 0.",
+    "starter_code": "def zero_sum_subarray(nums):\n    pass\n\nprint(zero_sum_subarray([4,2,-3,1,6]))",
+    "test_cases": [
+      {
+        "expected": "True"
+      }
+    ],
+    "is_used": false,
+    "is_active": true
+  },
+  {
+    "game_type": "CRAPS",
+    "difficulty": "HIGH",
+    "title": "Case Five",
+    "problem_statement": "Given a list of integers, find the length of the longest subarray with sum equal to k.",
+    "starter_code": "def longest_subarray_sum(nums, k):\n    pass\n\nprint(longest_subarray_sum(, 15))",
+    "test_cases": [
+      {
+        "expected": "4"
+      }
+    ],
+    "is_used": false,
+    "is_active": true
+  },
+  {
+    "game_type": "CRAPS",
+    "difficulty": "HIGH",
+    "title": "Case Six",
+    "problem_statement": "Given a list of integers, count the number of ways to split the list into two parts such that the sum of left part equals the sum of right part.",
+    "starter_code": "def split_equal_sum(nums):\n    pass\n\nprint(split_equal_sum())",
+    "test_cases": [
+      {
+        "expected": "1"
+      }
+    ],
+    "is_used": false,
+    "is_active": true
+  },
+  {
+    "game_type": "CRAPS",
+    "difficulty": "HIGH",
+    "title": "Case Seven",
+    "problem_statement": "Given a list of integers, find the minimum length subarray whose sum is at least k.",
+    "starter_code": "def min_length_subarray(nums, k):\n    pass\n\nprint(min_length_subarray(, 7))",
+    "test_cases": [
+      {
+        "expected": "2"
+      }
+    ],
+    "is_used": false,
+    "is_active": true
+  },
+  {
+    "game_type": "CRAPS",
+    "difficulty": "HIGH",
+    "title": "Case Eight",
+    "problem_statement": "Given a list of integers, determine if the list can be partitioned into two subarrays with equal sum.",
+    "starter_code": "def can_partition(nums):\n    pass\n\nprint(can_partition())",
+    "test_cases": [
+      {
+        "expected": "True"
+      }
+    ],
+    "is_used": false,
+    "is_active": true
+  },
+  {
+    "game_type": "SLOTS",
+    "difficulty": "STANDARD",
+    "title": "Case I",
+    "problem_statement": "A number is called special if its digits alternate between even and odd, and it appears more than once in the list. Given a list of integers, print all such special numbers.",
+    "starter_code": "def solve(nums):\n    result = []\n    for n in nums:\n        s = str(n)\n        ok = True\n        for i in range(len(s)-1):\n            if (int(s[i]) % 2) == (int(s[i+1]) % 2):\n                ok = False\n        if ok:\n            result.append(n)\n    return result",
+    "test_cases": [],
+    "is_used": false,
+    "is_active": true
+  },
+  {
+    "game_type": "SLOTS",
+    "difficulty": "STANDARD",
+    "title": "Case II",
+    "problem_statement": "Given a list of integers and a target value k, count how many triplets (i < j < l) satisfy arr[i] + arr[j] + arr[l] == k. Print the count of such triplets.",
+    "starter_code": "def solve(arr, k):\n    count = 0\n    n = len(arr)\n    for i in range(n):\n        for j in range(i+1, n):\n            for l in range(j+1, n):\n                if arr[i] + arr[j] + arr[l] == k:\n                    count += 1\n    return count",
+    "test_cases": [],
+    "is_used": false,
+    "is_active": true
+  },
+  {
+    "game_type": "SLOTS",
+    "difficulty": "STANDARD",
+    "title": "Case III",
+    "problem_statement": "Given a list of distinct integers, check whether the array can become sorted in non-decreasing order by swapping exactly one pair of elements. Print \"YES\" if possible, otherwise \"NO\".",
+    "starter_code": "def solve(arr):\n    sorted_arr = sorted(arr)\n    diff = []\n    for i in range(len(arr)):\n        if arr[i] != sorted_arr[i]:\n            diff.append(i)\n    if len(diff) == 2:\n        return 'YES'\n    return 'NO'",
+    "test_cases": [],
+    "is_used": false,
+    "is_active": true
+  },
+  {
+    "game_type": "SLOTS",
+    "difficulty": "STANDARD",
+    "title": "Case IV",
+    "problem_statement": "Given a list of integers and an integer k, a subarray is called special if the product of its elements is exactly k. Count how many such special subarrays exist and print the count.",
+    "starter_code": "def solve(arr, k):\n    count = 0\n    for i in range(len(arr)):\n        prod = 1\n        for j in range(i, len(arr)):\n            prod *= arr[j]\n            if prod == k:\n                count += 1\n    return count",
+    "test_cases": [],
+    "is_used": false,
+    "is_active": true
+  },
+  {
+    "game_type": "SLOTS",
+    "difficulty": "STANDARD",
+    "title": "Case V",
+    "problem_statement": "Given an integer n, repeatedly replace n with the product of its digits until it becomes a single digit. Print the final single-digit result.",
+    "starter_code": "def solve(n):\n    while n >= 10:\n        prod = 1\n        for d in str(n):\n            prod *= int(d)\n        n = prod\n    return n",
+    "test_cases": [],
+    "is_used": false,
+    "is_active": true
+  },
+  {
+    "game_type": "SLOTS",
+    "difficulty": "STANDARD",
+    "title": "Case VI",
+    "problem_statement": "Given an array of integers, let evenIndexSum be the sum of elements at even indices and oddIndexSum be the sum of elements at odd indices. Print the absolute difference between evenIndexSum and oddIndexSum.",
+    "starter_code": "def solve(arr):\n    even_sum = 0\n    odd_sum = 0\n    for i in range(len(arr)):\n        if i % 2 == 0:\n            even_sum += arr[i]\n        else:\n            odd_sum += arr[i]\n    return abs(even_sum - odd_sum)",
+    "test_cases": [],
+    "is_used": false,
+    "is_active": true
+  },
+  {
+    "game_type": "SLOTS",
+    "difficulty": "STANDARD",
+    "title": "Case VII",
+    "problem_statement": "A number is special if it is a palindrome (reads the same forward and backward) and appears more than once in the list. Given a list of integers, print all such special numbers.",
+    "starter_code": "def solve(nums):\n    res = []\n    for n in nums:\n        if str(n) == str(n)[::-1] and nums.count(n) > 1:\n            res.append(n)\n    return list(set(res))",
+    "test_cases": [],
+    "is_used": false,
+    "is_active": true
+  },
+  {
+    "game_type": "SLOTS",
+    "difficulty": "STANDARD",
+    "title": "Case VIII",
+    "problem_statement": "A number is special if the absolute difference between every pair of adjacent digits is exactly 1 and it appears more than once in the list. Given a list of integers, print all such special numbers.",
+    "starter_code": "def solve(nums):\n    res = []\n    for n in nums:\n        s = str(n)\n        ok = True\n        for i in range(len(s)-1):\n            if abs(int(s[i]) - int(s[i+1])) != 1:\n                ok = False\n        if ok and nums.count(n) > 1:\n            res.append(n)\n    return list(set(res))",
+    "test_cases": [],
+    "is_used": false,
+    "is_active": true
+  },
+  {
+    "game_type": "SLOTS",
+    "difficulty": "HIGH",
+    "title": "Case I",
+    "problem_statement": "Given a list of integers, return the length of the longest contiguous subarray with equal number of even and odd numbers. The current implementation gives incorrect results for multiple cases.",
+    "starter_code": "def solve(nums):\n    max_len = 0\n    for i in range(len(nums)):\n        even = 0\n        odd = 0\n        for j in range(i, len(nums)):\n            if nums[j] % 2 == 0:\n                even += 1\n            else:\n                odd += 1\n            if even == odd:\n                max_len = max(max_len, j - i)\n    return max_len",
+    "test_cases": [],
+    "is_used": false,
+    "is_active": true
+  },
+  {
+    "game_type": "SLOTS",
+    "difficulty": "HIGH",
+    "title": "Case II",
+    "problem_statement": "Given a list of integers, return True if there exists a pair whose difference equals k. The logic fails for negative numbers and duplicates.",
+    "starter_code": "def solve(nums, k):\n    for i in range(len(nums)):\n        for j in range(len(nums)):\n            if nums[i] - nums[j] == k:\n                return True\n    return False",
+    "test_cases": [],
+    "is_used": false,
+    "is_active": true
+  },
+  {
+    "game_type": "SLOTS",
+    "difficulty": "HIGH",
+    "title": "Case III",
+    "problem_statement": "Given a list of integers, find the smallest missing positive number. The implementation breaks for certain edge cases.",
+    "starter_code": "def solve(nums):\n    nums.sort()\n    smallest = 1\n    for n in nums:\n        if n == smallest:\n            smallest += 1\n    return smallest",
+    "test_cases": [],
+    "is_used": false,
+    "is_active": true
+  },
+  {
+    "game_type": "SLOTS",
+    "difficulty": "HIGH",
+    "title": "Case IV",
+    "problem_statement": "Given a string, return the length of the longest substring without repeating characters. The logic is flawed.",
+    "starter_code": "def solve(s):\n    max_len = 0\n    for i in range(len(s)):\n        seen = set()\n        for j in range(i, len(s)):\n            if s[j] in seen:\n                break\n            seen.add(s[j])\n        max_len = max(max_len, len(seen))\n    return max_len",
+    "test_cases": [],
+    "is_used": false,
+    "is_active": true
+  },
+  {
+    "game_type": "SLOTS",
+    "difficulty": "HIGH",
+    "title": "Case V",
+    "problem_statement": "Given a list of integers, determine if it can be partitioned into two subsets with equal sum. The approach is incomplete.",
+    "starter_code": "def solve(nums):\n    total = sum(nums)\n    if total % 2 != 0:\n        return False\n    target = total // 2\n    curr = 0\n    for n in nums:\n        curr += n\n        if curr == target:\n            return True\n    return False",
+    "test_cases": [],
+    "is_used": false,
+    "is_active": true
+  },
+  {
+    "game_type": "SLOTS",
+    "difficulty": "HIGH",
+    "title": "Case VI",
+    "problem_statement": "Given a list of integers, return the number of inversions in the array. The implementation misses several inversion cases.",
+    "starter_code": "def solve(nums):\n    count = 0\n    for i in range(len(nums)):\n        for j in range(i+1, len(nums)):\n            if nums[i] > nums[j]:\n                count += 1\n                break\n    return count",
+    "test_cases": [],
+    "is_used": false,
+    "is_active": true
+  },
+  {
+    "game_type": "SLOTS",
+    "difficulty": "HIGH",
+    "title": "Case VII",
+    "problem_statement": "Given a list of integers, return the maximum product subarray. The logic gives incorrect results for negative numbers.",
+    "starter_code": "def solve(nums):\n    max_prod = nums\n    curr = nums\n    for i in range(1, len(nums)):\n        curr = max(nums[i], curr * nums[i])\n        max_prod = max(max_prod, curr)\n    return max_prod",
+    "test_cases": [],
+    "is_used": false,
+    "is_active": true
+  },
+  {
+    "game_type": "SLOTS",
+    "difficulty": "HIGH",
+    "title": "Case VIII",
+    "problem_statement": "Given a list of integers, return the length of the longest increasing subsequence. The current implementation only checks consecutive elements.",
+    "starter_code": "def solve(nums):\n    longest = 1\n    curr = 1\n    for i in range(1, len(nums)):\n        if nums[i] > nums[i-1]:\n            curr += 1\n        else:\n            curr = 1\n        longest = max(longest, curr)\n    return longest",
+    "test_cases": [],
+    "is_used": false,
+    "is_active": true
+  },
+  {
+    "game_type": "HOLDEM",
+    "difficulty": "STANDARD",
+    "title": "Case 1",
+    "problem_statement": "Validate a bracket string containing (), {}, []. If '{}' appears inside '[]', it is invalid. Return True or False.",
+    "starter_code": "def validate(s):\n    # Use stack logic\n    pass",
+    "constraints": "stack, list",
+    "test_cases": [],
+    "is_used": false,
+    "is_active": true
+  },
+  {
+    "game_type": "HOLDEM",
+    "difficulty": "STANDARD",
+    "title": "Case 2",
+    "problem_statement": "Repeatedly remove characters that appear exactly twice consecutively in a string until no such pairs remain.",
+    "starter_code": "def collapse(s):\n    # Use stack approach\n    pass",
+    "constraints": "stack, string",
+    "test_cases": [],
+    "is_used": false,
+    "is_active": true
+  },
+  {
+    "game_type": "HOLDEM",
+    "difficulty": "STANDARD",
+    "title": "Case 3",
+    "problem_statement": "Merge two dictionaries. If key exists in both, keep larger value. If equal values, remove the key entirely.",
+    "starter_code": "def merge_dicts(d1, d2):\n    # Dictionary logic\n    pass",
+    "constraints": "dictionary",
+    "test_cases": [],
+    "is_used": false,
+    "is_active": true
+  },
+  {
+    "game_type": "HOLDEM",
+    "difficulty": "STANDARD",
+    "title": "Case 4",
+    "problem_statement": "Rotate a list to the right by k. If first element after rotation is even, reverse entire list.",
+    "starter_code": "def rotate_modify(lst, k):\n    # List manipulation\n    pass",
+    "constraints": "list slicing",
+    "test_cases": [],
+    "is_used": false,
+    "is_active": true
+  },
+  {
+    "game_type": "HOLDEM",
+    "difficulty": "STANDARD",
+    "title": "Case 5",
+    "problem_statement": "Evaluate an expression with digits, + and * operators strictly left-to-right (no precedence).",
+    "starter_code": "def evaluate(expr):\n    # Use stack or list\n    pass",
+    "constraints": "stack, string parsing",
+    "test_cases": [],
+    "is_used": false,
+    "is_active": true
+  },
+  {
+    "game_type": "HOLDEM",
+    "difficulty": "STANDARD",
+    "title": "Case 6",
+    "problem_statement": "Group words by sorted character pattern (anagram grouping).",
+    "starter_code": "def group_words(words):\n    # Use dictionary grouping\n    pass",
+    "constraints": "dictionary, list",
+    "test_cases": [],
+    "is_used": false,
+    "is_active": true
+  },
+  {
+    "game_type": "HOLDEM",
+    "difficulty": "STANDARD",
+    "title": "Case 7",
+    "problem_statement": "Remove only the deepest nested parentheses from a string.",
+    "starter_code": "def remove_deepest(s):\n    # Use stack logic\n    pass",
+    "constraints": "stack, string",
+    "test_cases": [],
+    "is_used": false,
+    "is_active": true
+  },
+  {
+    "game_type": "HOLDEM",
+    "difficulty": "STANDARD",
+    "title": "Case 8",
+    "problem_statement": "Update a nested dictionary using update instructions. Create missing keys. Increment existing subkeys.",
+    "starter_code": "def update_structure(data, updates):\n    # Nested dictionary update\n    pass",
+    "constraints": "nested dictionary",
+    "test_cases": [],
+    "is_used": false,
+    "is_active": true
+  },
+  {
+    "game_type": "HOLDEM",
+    "difficulty": "HIGH",
+    "title": "Case 1",
+    "problem_statement": "Given a string containing (), {}, [], determine if it is valid. Additionally, brackets must close in strictly increasing nesting priority: () inside {}, and {} inside []. Any violation returns False.",
+    "starter_code": "def advanced_validate(s):\n    # Stack with priority rules\n    pass",
+    "constraints": "stack, custom nesting rule",
+    "test_cases": [],
+    "is_used": false,
+    "is_active": true
+  },
+  {
+    "game_type": "HOLDEM",
+    "difficulty": "HIGH",
+    "title": "Case 2",
+    "problem_statement": "Given a string, repeatedly remove any group of 3 consecutive identical characters until no such group exists. Return final string.",
+    "starter_code": "def triple_collapse(s):\n    # Stack-based elimination\n    pass",
+    "constraints": "stack, string processing",
+    "test_cases": [],
+    "is_used": false,
+    "is_active": true
+  },
+  {
+    "game_type": "HOLDEM",
+    "difficulty": "HIGH",
+    "title": "Case 3",
+    "problem_statement": "Merge multiple dictionaries in a list. If a key appears more than once, sum values. If final value becomes divisible by 5, remove that key.",
+    "starter_code": "def merge_multiple(dicts):\n    # Dictionary accumulation logic\n    pass",
+    "constraints": "dictionary, iteration",
+    "test_cases": [],
+    "is_used": false,
+    "is_active": true
+  },
+  {
+    "game_type": "HOLDEM",
+    "difficulty": "HIGH",
+    "title": "Case 4",
+    "problem_statement": "Implement a mini text editor supporting operations: PUSH word, POP, UNDO. Maintain history using stack logic and return final state.",
+    "starter_code": "def text_editor(operations):\n    # Stack with history tracking\n    pass",
+    "constraints": "stack, list",
+    "test_cases": [],
+    "is_used": false,
+    "is_active": true
+  },
+  {
+    "game_type": "HOLDEM",
+    "difficulty": "HIGH",
+    "title": "Case 5",
+    "problem_statement": "Given a list of numbers, return the length of the longest subarray with unique elements using dictionary tracking.",
+    "starter_code": "def longest_unique(nums):\n    # Sliding window with dictionary\n    pass",
+    "constraints": "dictionary, sliding window",
+    "test_cases": [],
+    "is_used": false,
+    "is_active": true
+  },
+  {
+    "game_type": "HOLDEM",
+    "difficulty": "HIGH",
+    "title": "Case 6",
+    "problem_statement": "Given nested dictionary data, flatten it into single-level dictionary using dot notation (e.g., a.b.c).",
+    "starter_code": "def flatten_dict(d, parent=''):\n    # Recursive dictionary handling\n    pass",
+    "constraints": "dictionary, recursion",
+    "test_cases": [],
+    "is_used": false,
+    "is_active": true
+  },
+  {
+    "game_type": "HOLDEM",
+    "difficulty": "HIGH",
+    "title": "Case 7",
+    "problem_statement": "Given a string containing nested parentheses, return the maximum depth and remove characters at that depth.",
+    "starter_code": "def remove_max_depth(s):\n    # Stack tracking depth\n    pass",
+    "constraints": "stack, depth tracking",
+    "test_cases": [],
+    "is_used": false,
+    "is_active": true
+  },
+  {
+    "game_type": "HOLDEM",
+    "difficulty": "HIGH",
+    "title": "Case 8",
+    "problem_statement": "Design a function that simulates stack operations with MAX retrieval in O(1). Operations: PUSH, POP, MAX. Return results of MAX queries.",
+    "starter_code": "def max_stack(operations):\n    # Two-stack approach\n    pass",
+    "constraints": "stack, auxiliary stack",
+    "test_cases": [],
+    "is_used": false,
+    "is_active": true
+  },
+  {
+    "game_type": "BLACKJACK",
+    "difficulty": "STANDARD",
+    "title": "Case 1",
+    "problem_statement": "Given a string s, the score of a substring is defined as (sum of frequencies of each character in the substring) × (number of distinct characters). Return the maximum score among all substrings.",
+    "starter_code": "def max_weighted_substring(s):\n    # Use dictionary + sliding logic\n    pass",
+    "constraints": "string, dictionary, sliding window",
+    "test_cases": [],
+    "is_used": false,
+    "is_active": true
+  },
+  {
+    "game_type": "BLACKJACK",
+    "difficulty": "STANDARD",
+    "title": "Case 2",
+    "problem_statement": "Given a string, repeatedly remove any pattern of digit + letter + same digit using stack logic until no such pattern exists. Return final string.",
+    "starter_code": "def stack_reduce(s):\n    # Stack-based pattern removal\n    pass",
+    "constraints": "stack, string",
+    "test_cases": [],
+    "is_used": false,
+    "is_active": true
+  },
+  {
+    "game_type": "BLACKJACK",
+    "difficulty": "STANDARD",
+    "title": "Case 3",
+    "problem_statement": "Process operations of type ADD, MERGE, DELETE on a dictionary. ADD inserts or increments. MERGE combines two keys and removes the second. DELETE removes key. Return final dictionary.",
+    "starter_code": "def process_operations(operations):\n    # Dictionary mutation logic\n    pass",
+    "constraints": "dictionary, mutation",
+    "test_cases": [],
+    "is_used": false,
+    "is_active": true
+  },
+  {
+    "game_type": "BLACKJACK",
+    "difficulty": "STANDARD",
+    "title": "Case 4",
+    "problem_statement": "Given a list of integers, if element is prime duplicate it, if divisible by 3 remove next element, else keep as is. Process left to right once.",
+    "starter_code": "def conditional_modify(lst):\n    # Careful list mutation\n    pass",
+    "constraints": "list, mutation control",
+    "test_cases": [],
+    "is_used": false,
+    "is_active": true
+  },
+  {
+    "game_type": "BLACKJACK",
+    "difficulty": "STANDARD",
+    "title": "Case 5",
+    "problem_statement": "Given a string of parentheses, return the length of the longest balanced contiguous segment using stack logic.",
+    "starter_code": "def longest_balanced(s):\n    # Stack approach\n    pass",
+    "constraints": "stack, string",
+    "test_cases": [],
+    "is_used": false,
+    "is_active": true
+  },
+  {
+    "game_type": "BLACKJACK",
+    "difficulty": "STANDARD",
+    "title": "Case 6",
+    "problem_statement": "Given a string s, find minimum changes required so all characters have equal frequency.",
+    "starter_code": "def min_equal_frequency_changes(s):\n    # Dictionary frequency analysis\n    pass",
+    "constraints": "dictionary, math reasoning",
+    "test_cases": [],
+    "is_used": false,
+    "is_active": true
+  },
+  {
+    "game_type": "BLACKJACK",
+    "difficulty": "STANDARD",
+    "title": "Case 7",
+    "problem_statement": "Given list nums and integer k, return length of shortest contiguous segment (circular allowed) whose sum >= k.",
+    "starter_code": "def circular_min_subarray(nums, k):\n    # Sliding window + circular handling\n    pass",
+    "constraints": "list, sliding window",
+    "test_cases": [],
+    "is_used": false,
+    "is_active": true
+  },
+  {
+    "game_type": "BLACKJACK",
+    "difficulty": "STANDARD",
+    "title": "Case 8",
+    "problem_statement": "Given a string with nested parentheses, reverse substrings inside parentheses from innermost first and remove parentheses.",
+    "starter_code": "def reverse_parentheses(s):\n    # Stack-based nested reversal\n    pass",
+    "constraints": "stack, string manipulation",
+    "test_cases": [],
+    "is_used": false,
+    "is_active": true
+  },
+  {
+    "game_type": "BLACKJACK",
+    "difficulty": "HIGH",
+    "title": "Case 1",
+    "problem_statement": "Given a string s, find the maximum score of any substring where score = (length of substring) * (number of distinct characters)^2. String length up to 10^5. Must be optimized.",
+    "starter_code": "def max_distinct_score(s):\n    # Optimized sliding window + dictionary\n    pass",
+    "constraints": "string, dictionary, optimized sliding window",
+    "test_cases": [],
+    "is_used": false,
+    "is_active": true
+  },
+  {
+    "game_type": "BLACKJACK",
+    "difficulty": "HIGH",
+    "title": "Case 2",
+    "problem_statement": "Given a string, remove the minimum number of characters so that no character appears more than k times. Return the minimum removals required.",
+    "starter_code": "def min_removals_limit(s, k):\n    # Frequency dictionary + greedy logic\n    pass",
+    "constraints": "dictionary, greedy reasoning",
+    "test_cases": [],
+    "is_used": false,
+    "is_active": true
+  },
+  {
+    "game_type": "BLACKJACK",
+    "difficulty": "HIGH",
+    "title": "Case 3",
+    "problem_statement": "Given a list of integers, count number of subarrays whose sum is divisible by k. N up to 10^5.",
+    "starter_code": "def count_divisible_subarrays(nums, k):\n    # Prefix sum + dictionary counting\n    pass",
+    "constraints": "list, prefix sum, dictionary",
+    "test_cases": [],
+    "is_used": false,
+    "is_active": true
+  },
+  {
+    "game_type": "BLACKJACK",
+    "difficulty": "HIGH",
+    "title": "Case 4",
+    "problem_statement": "Given a string of parentheses and letters, remove minimum characters to make parentheses valid while preserving letter order.",
+    "starter_code": "def min_remove_parentheses(s):\n    # Stack + index tracking\n    pass",
+    "constraints": "stack, string",
+    "test_cases": [],
+    "is_used": false,
+    "is_active": true
+  },
+  {
+    "game_type": "BLACKJACK",
+    "difficulty": "HIGH",
+    "title": "Case 5",
+    "problem_statement": "Given a list of integers, find the longest subarray where the difference between max and min is <= k.",
+    "starter_code": "def longest_bounded_subarray(nums, k):\n    # Sliding window + dictionary\n    pass",
+    "constraints": "list, sliding window",
+    "test_cases": [],
+    "is_used": false,
+    "is_active": true
+  },
+  {
+    "game_type": "BLACKJACK",
+    "difficulty": "HIGH",
+    "title": "Case 6",
+    "problem_statement": "Given a string, count number of substrings that contain all vowels at least once and no more than k consonants.",
+    "starter_code": "def count_vowel_substrings(s, k):\n    # Sliding window + frequency tracking\n    pass",
+    "constraints": "string, dictionary, sliding window",
+    "test_cases": [],
+    "is_used": false,
+    "is_active": true
+  },
+  {
+    "game_type": "BLACKJACK",
+    "difficulty": "HIGH",
+    "title": "Case 7",
+    "problem_statement": "Given a nested dictionary, detect if there exists a cycle reference (simulate using keys referencing parent keys). Return True or False.",
+    "starter_code": "def detect_cycle(data):\n    # Stack or visited set tracking\n    pass",
+    "constraints": "dictionary, stack, recursion simulation",
+    "test_cases": [],
+    "is_used": false,
+    "is_active": true
+  },
+  {
+    "game_type": "BLACKJACK",
+    "difficulty": "HIGH",
+    "title": "Case 8",
+    "problem_statement": "Given a list of integers, partition into minimum number of contiguous segments such that each segment has unique elements.",
+    "starter_code": "def min_unique_partitions(nums):\n    # Greedy + set tracking\n    pass",
+    "constraints": "list, set logic",
+    "test_cases": [],
+    "is_used": false,
+    "is_active": true
+  },
+  {
+    "game_type": "ROULETTE",
+    "difficulty": "STANDARD",
+    "title": "Global Scope Reassignment",
+    "problem_statement": "Predict the exact output printed to the console.",
+    "starter_code": "x = 10\ndef change():\n    global x\n    x = 20\n    y = x\nchange()\nprint(x)",
+    "constraints": "",
+    "test_cases": [
+      {
+        "expected": "20"
+      }
+    ],
+    "is_used": false,
+    "is_active": true
+  },
+  {
+    "game_type": "ROULETTE",
+    "difficulty": "STANDARD",
+    "title": "List Slicing Reversal",
+    "problem_statement": "Predict the exact string output.",
+    "starter_code": "s = \"python\"\nprint(s[::-1][2:4])",
+    "constraints": "",
+    "test_cases": [
+      {
+        "expected": "ht"
+      }
+    ],
+    "is_used": false,
+    "is_active": true
+  },
+  {
+    "game_type": "ROULETTE",
+    "difficulty": "STANDARD",
+    "title": "Boolean Short Circuit",
+    "problem_statement": "Predict the exact boolean output (True or False).",
+    "starter_code": "def A(): return True\ndef B(): return False\nprint(B() and A() or A())",
+    "constraints": "",
+    "test_cases": [
+      {
+        "expected": "True"
+      }
+    ],
+    "is_used": false,
+    "is_active": true
+  },
+  {
+    "game_type": "ROULETTE",
+    "difficulty": "STANDARD",
+    "title": "String Immutability",
+    "problem_statement": "Predict the exact output.",
+    "starter_code": "s = \"cat\"\ns.upper()\nprint(s)",
+    "constraints": "",
+    "test_cases": [
+      {
+        "expected": "cat"
+      }
+    ],
+    "is_used": false,
+    "is_active": true
+  },
+  {
+    "game_type": "ROULETTE",
+    "difficulty": "STANDARD",
+    "title": "List Pop Index Shift",
+    "problem_statement": "Predict the exact integer output.",
+    "starter_code": "lst = \nlst.pop(1)\nprint(lst)",
+    "constraints": "",
+    "test_cases": [
+      {
+        "expected": "40"
+      }
+    ],
+    "is_used": false,
+    "is_active": true
+  },
+  {
+    "game_type": "ROULETTE",
+    "difficulty": "STANDARD",
+    "title": "Dictionary Default Values",
+    "problem_statement": "Predict the exact integer output.",
+    "starter_code": "d = {'a': 1}\nprint(d.get('b', 5) + d.get('a', 10))",
+    "constraints": "",
+    "test_cases": [
+      {
+        "expected": "6"
+      }
+    ],
+    "is_used": false,
+    "is_active": true
+  },
+  {
+    "game_type": "ROULETTE",
+    "difficulty": "STANDARD",
+    "title": "Set Intersection",
+    "problem_statement": "Predict the exact integer output.",
+    "starter_code": "s1 = {1, 2, 3}\ns2 = {3, 4, 5}\ns3 = s1 & s2\nprint(list(s3))",
+    "constraints": "",
+    "test_cases": [
+      {
+        "expected": "3"
+      }
+    ],
+    "is_used": false,
+    "is_active": true
+  },
+  {
+    "game_type": "ROULETTE",
+    "difficulty": "STANDARD",
+    "title": "For-Else Block Execution",
+    "problem_statement": "Predict the exact integer output.",
+    "starter_code": "ans = 0\nfor i in range(3):\n    if i == 5:\n        break\n    ans += 1\nelse:\n    ans += 10\nprint(ans)",
+    "constraints": "",
+    "test_cases": [
+      {
+        "expected": "13"
+      }
+    ],
+    "is_used": false,
+    "is_active": true
+  },
+  {
+    "game_type": "ROULETTE",
+    "difficulty": "HIGH",
+    "title": "Mutable Default Argument Trap",
+    "problem_statement": "Predict the exact integer output.",
+    "starter_code": "def add_val(val, lst=[]):\n    lst.append(val)\n    return len(lst)\nprint(add_val(1) + add_val(2))",
+    "constraints": "",
+    "test_cases": [
+      {
+        "expected": "3"
+      }
+    ],
+    "is_used": false,
+    "is_active": true
+  },
+  {
+    "game_type": "ROULETTE",
+    "difficulty": "HIGH",
+    "title": "Late Binding Closures",
+    "problem_statement": "Predict the exact integer output.",
+    "starter_code": "def outer():\n    funcs = []\n    for i in range(3):\n        funcs.append(lambda: i)\n    return funcs\n\nfns = outer()\nprint(fns() + fns())",
+    "constraints": "",
+    "test_cases": [
+      {
+        "expected": "4"
+      }
+    ],
+    "is_used": false,
+    "is_active": true
+  },
+  {
+    "game_type": "ROULETTE",
+    "difficulty": "HIGH",
+    "title": "Class Variable Shadowing",
+    "problem_statement": "Predict the exact integer output.",
+    "starter_code": "class A: x = 1\nclass B(A): pass\nclass C(A): pass\nB.x = 2\nA.x = 3\nprint(C.x + B.x)",
+    "constraints": "",
+    "test_cases": [
+      {
+        "expected": "5"
+      }
+    ],
+    "is_used": false,
+    "is_active": true
+  },
+  {
+    "game_type": "ROULETTE",
+    "difficulty": "HIGH",
+    "title": "Try-Finally Return Priority",
+    "problem_statement": "Predict the exact integer output.",
+    "starter_code": "def process():\n    try:\n        return 10\n    finally:\n        return 20\nprint(process())",
+    "constraints": "",
+    "test_cases": [
+      {
+        "expected": "20"
+      }
+    ],
+    "is_used": false,
+    "is_active": true
+  },
+  {
+    "game_type": "ROULETTE",
+    "difficulty": "HIGH",
+    "title": "Generator Exhaustion",
+    "problem_statement": "Predict the exact integer output.",
+    "starter_code": "gen = (x for x in )\na = list(gen)\nb = list(gen)\nprint(len(a) + len(b))",
+    "constraints": "",
+    "test_cases": [
+      {
+        "expected": "3"
+      }
+    ],
+    "is_used": false,
+    "is_active": true
+  },
+  {
+    "game_type": "ROULETTE",
+    "difficulty": "HIGH",
+    "title": "List Multiplication Reference",
+    "problem_statement": "Predict the exact integer output.",
+    "starter_code": "grid = [[]] * 3\ngrid[0].append(9)\nprint(sum(len(grid[i]) for i in range(3)))",
+    "constraints": "",
+    "test_cases": [
+      {
+        "expected": "3"
+      }
+    ],
+    "is_used": false,
+    "is_active": true
+  },
+  {
+    "game_type": "ROULETTE",
+    "difficulty": "HIGH",
+    "title": "Dictionary Hash Collisions",
+    "problem_statement": "Predict the exact integer output.",
+    "starter_code": "d = {True: 1, 1: 2, 1.0: 3}\nprint(len(d) + d[True])",
+    "constraints": "",
+    "test_cases": [
+      {
+        "expected": "4"
+      }
+    ],
+    "is_used": false,
+    "is_active": true
+  },
+  {
+    "game_type": "ROULETTE",
+    "difficulty": "HIGH",
+    "title": "Decorator Wrap Execution",
+    "problem_statement": "Predict the exact integer output.",
+    "starter_code": "def dec(func):\n    def wrapper():\n        return func() * 2\n    return wrapper\n\n@dec\ndef get_val():\n    return 5\n\nprint(get_val())",
+    "constraints": "",
+    "test_cases": [
+      {
+        "expected": "10"
+      }
+    ],
+    "is_used": false,
+    "is_active": true
+  }
+]

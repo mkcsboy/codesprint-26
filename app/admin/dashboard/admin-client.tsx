@@ -11,19 +11,20 @@ import {
     getAllTeams, adjustWallet, sendWarning, banTeam, unbanTeam, updateStamps,
     getAllQuestions, toggleQuestion, burnQuestion, reshuffleAllQuestions, bulkUploadQuestions,
     getLeaderboard, getAnalytics, broadcastMessage, forceWin, createTeam,
-    startTableRound, setTableStatusState, awardWin
+    startTableRound, setTableStatusState, awardWin, toggleRound2Portal
 } from '../actions'
 import { Json } from '@/lib/supabase/types'
 
 type Tab = 'pit' | 'vault' | 'deck' | 'eye'
 
-const GAME_TYPES = ['slots', 'roulette', 'blackjack', 'holdem', 'craps'] as const
+const GAME_TYPES = ['slots', 'roulette', 'blackjack', 'holdem', 'craps', 'final'] as const
 const GAME_LABELS: Record<string, string> = {
     slots: '🎰 SLOTS (Debug)',
     roulette: '🎯 ROULETTE (Predict)',
     blackjack: '🃏 BLACKJACK (Constraints)',
     holdem: '♠️ HOLD\'EM (Optimize)',
     craps: '🎲 CRAPS (Logic)',
+    final: '🏆 FINAL ROUND (All In)',
 }
 
 export default function AdminDashboard() {
@@ -84,6 +85,7 @@ export default function AdminDashboard() {
 // ========================================
 function ThePit() {
     const [isPaused, setIsPaused] = useState(false)
+    const [isRound2Open, setIsRound2Open] = useState(false)
     const [currentRound, setCurrentRoundState] = useState('slots')
     const [liveFeed, setLiveFeed] = useState<any[]>([])
     const [broadcast, setBroadcast] = useState('')
@@ -103,6 +105,7 @@ function ThePit() {
         const data = await getEventState()
         if (data && !data.error) {
             setIsPaused(data.control?.is_paused || false)
+            setIsRound2Open(data.control?.round_2_open || false)
             setCurrentRoundState(data.control?.current_round || 'slots')
             setLiveFeed(data.recentTx || [])
             setTableTimers(data.control?.table_timers as Record<string, string> || {})
@@ -217,18 +220,46 @@ function ThePit() {
                     </div>
 
                     {/* Table Controls */}
-                    <div className="mt-6 border-t border-white/10 pt-4">
-                        <button
-                            onClick={handleStartRound}
-                            disabled={actionLoading === 'start-round'}
-                            className="w-full flex items-center justify-center gap-2 p-4 bg-red-900/40 hover:bg-red-900/60 border-2 border-red-500 rounded-xl text-red-100 font-pixel text-lg shadow-[0_0_15px_rgba(239,68,68,0.3)] transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            <Play className="w-5 h-5" />
-                            START {currentRound.toUpperCase()}
-                        </button>
-                        <p className="text-center text-[10px] text-gray-500 mt-2 font-mono uppercase">
-                            Warning: This will auto-burn active questions for {currentRound}.
-                        </p>
+                    <div className="mt-6 border-t border-white/10 pt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <button
+                                onClick={handleStartRound}
+                                disabled={actionLoading === 'start-round'}
+                                className="w-full h-full flex items-center justify-center gap-2 p-4 bg-red-900/40 hover:bg-red-900/60 border-2 border-red-500 rounded-xl text-red-100 font-pixel text-lg shadow-[0_0_15px_rgba(239,68,68,0.3)] transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                <Play className="w-5 h-5" />
+                                START {currentRound.toUpperCase()}
+                            </button>
+                            <p className="text-center text-[10px] text-gray-500 mt-2 font-mono uppercase">
+                                Warning: Auto-burns questions.
+                            </p>
+                        </div>
+                        <div>
+                            <button
+                                onClick={async () => {
+                                    if (!window.confirm(!isRound2Open ? 'Are you sure you want to OPEN the Round 2 Portal? All players will see it.' : 'Are you sure you want to CLOSE the Round 2 Portal?')) return;
+                                    setActionLoading('round-2')
+                                    const res = await toggleRound2Portal(!isRound2Open)
+                                    if (res.error) {
+                                        alert(res.error)
+                                    } else {
+                                        setIsRound2Open(!isRound2Open)
+                                    }
+                                    setActionLoading(null)
+                                }}
+                                disabled={actionLoading === 'round-2'}
+                                className={`w-full flex items-center justify-center gap-2 p-4 border-2 rounded-xl font-pixel text-lg transition-all hover:scale-[1.02] disabled:opacity-50
+                                    ${isRound2Open
+                                        ? 'bg-yellow-900/60 border-yellow-500 text-yellow-100 shadow-[0_0_15px_rgba(234,179,8,0.5)] animate-pulse'
+                                        : 'bg-yellow-900/20 border-yellow-900 text-yellow-500/50 hover:border-yellow-500 hover:text-yellow-400'
+                                    }`}
+                            >
+                                {isRound2Open ? 'CLOSE PORTAL' : 'OPEN ROUND 2 PORTAL'}
+                            </button>
+                            <p className="text-center text-[10px] text-gray-500 mt-2 font-mono uppercase text-yellow-500/50">
+                                {isRound2Open ? 'PORTAL IS LIVE!' : 'Portal is currently closed.'}
+                            </p>
+                        </div>
                     </div>
 
                     <div className="mt-6 border-t border-white/10 pt-4">
@@ -593,6 +624,17 @@ function TheVault() {
                                                     <Ban className="w-3.5 h-3.5" />
                                                 </button>
                                             )}
+                                            <button
+                                                onClick={async (e) => {
+                                                    e.stopPropagation();
+                                                    const { logoutAction } = await import('@/app/actions')
+                                                    await logoutAction(team.id)
+                                                }}
+                                                className="p-1.5 rounded hover:bg-blue-900/30 text-blue-500/50 hover:text-blue-400 transition-colors"
+                                                title="Force Disconnect Session"
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path><line x1="12" y1="2" x2="12" y2="12"></line></svg>
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
@@ -900,11 +942,18 @@ function TheDeck() {
                   ${q.difficulty === 'HIGH' ? 'bg-red-600/20 text-red-300' : 'bg-green-900/20 text-green-300'}`}>
                                     {q.difficulty}
                                 </span>
-                                <span className="font-mono text-xs text-white truncate">{q.title}</span>
+                                <div className="flex flex-col flex-grow ml-2 min-w-0">
+                                    <span className="font-mono text-xs text-white break-words">{q.title}</span>
+                                    {q.problem_statement && (
+                                        <div className="font-sans text-[10px] text-gray-400 mt-1 whitespace-pre-wrap break-words max-h-32 overflow-y-auto">
+                                            {q.problem_statement}
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                             <div className="flex items-center gap-2 shrink-0 ml-4">
                                 {q.is_used && (
-                                    <span className="text-[8px] font-pixel text-red-400 bg-red-900/20 px-2 py-0.5 rounded">BURNED</span>
+                                    <span className="text-[8px] font-pixel text-red-400 bg-red-900/20 px-2 py-0.5 rounded flex-shrink-0">BURNED</span>
                                 )}
                                 <button
                                     onClick={() => handleToggle(q.id, q.is_active)}

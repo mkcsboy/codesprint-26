@@ -13,6 +13,20 @@ function isAdminAuthenticated(): boolean {
 // TAB A: "THE PIT" - Live Ops
 // =============================================
 
+export async function toggleRound2Portal(isOpen: boolean) {
+    if (!isAdminAuthenticated()) return { error: 'UNAUTHORIZED' }
+
+    // @ts-ignore
+    const payload: any = { round_2_open: isOpen }
+    const { error } = await supabaseAdmin
+        .from('event_control')
+        .update(payload)
+        .eq('id', 1)
+
+    if (error) return { error: error.message }
+    return { success: true }
+}
+
 export async function setTableStatusState(gameId: string, status: string) {
     if (!isAdminAuthenticated()) return { error: 'UNAUTHORIZED' }
 

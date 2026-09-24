@@ -122,6 +122,11 @@ const VIP_TABLES = [
 
 const LOBBY_DECORATIONS: any[] = []
 
+const LOBBY_BOUNCERS = [
+  { x: 7, y: 1, label: 'BOUNCER' },
+  { x: 12, y: 1, label: 'BOUNCER' }
+]
+
 interface MapClientProps {
   userData: {
     id: string
@@ -197,6 +202,18 @@ export default function MapClient({ userData }: MapClientProps) {
 
   // --- BROADCAST STATE ---
   const [broadcastMessage, setBroadcastMessage] = useState<string | null>(null)
+
+  // --- BOUNCER STATE ---
+  const [bouncerMsg, setBouncerMsg] = useState<{ left: string | null, right: string | null }>({ left: null, right: null })
+  const bouncerTimeout = useRef<NodeJS.Timeout | null>(null)
+
+  const triggerBouncerMsg = (left: string | null, right: string | null) => {
+    setBouncerMsg({ left, right })
+    if (bouncerTimeout.current) clearTimeout(bouncerTimeout.current)
+    bouncerTimeout.current = setTimeout(() => {
+      setBouncerMsg({ left: null, right: null })
+    }, 4000)
+  }
 
   // --- STATE REFS FOR EVENT LISTENERS ---
   const sceneRef = useRef(scene)
@@ -280,11 +297,18 @@ export default function MapClient({ userData }: MapClientProps) {
       if (x >= d.x && x < d.x + (d.w || 1) && y >= d.y && y < d.y + (d.h || 1)) return true
     }
 
+    if (sceneRef.current === 'LOBBY') {
+      for (const b of LOBBY_BOUNCERS) {
+        if (x === b.x && y === b.y) return true
+      }
+    }
+
     return false
   }
 
   const handleTeleportToRound2 = async () => {
     setScene('VIP_ROOM')
+    setInRound2(true)
     setPosition({ x: Math.floor(VIP_W / 2), y: VIP_H - 2 })
     const { updateRound2Status } = await import('@/app/actions')
     await updateRound2Status(userData.id, true)
@@ -292,6 +316,7 @@ export default function MapClient({ userData }: MapClientProps) {
 
   const handleTeleportToRound1 = async () => {
     setScene('LOBBY')
+    setInRound2(false)
     setPosition({ x: 9, y: 2 })
     const { updateRound2Status } = await import('@/app/actions')
     await updateRound2Status(userData.id, false)
@@ -374,25 +399,38 @@ export default function MapClient({ userData }: MapClientProps) {
     const eventChannel = supabase.channel('map_event_updates')
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'event_control', filter: 'id=eq.1' }, (payload) => {
         const newRecord = payload.new as any
-        const portalNowClosed = newRecord.round_2_open === false
-        setIsRound2Open(!portalNowClosed)
-        if (inRound2 && portalNowClosed) handleTeleportToRound1()
         handleBroadcast(newRecord.current_round)
       })
       .subscribe()
 
-    const pollInterval = setInterval(async () => {
-      const eventData = await supabase.from('event_control').select('current_round, round_2_open').eq('id', 1).maybeSingle().then(res => res.data as any)
-      if (eventData) {
-        const portalNowClosed = eventData.round_2_open === false
+    const gameStateChannel = supabase.channel('map_gamestate_updates')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'game_state', filter: "game_id=eq.final" }, (payload) => {
+        const newRecord = payload.new as any
+        const portalNowClosed = !newRecord || newRecord.is_active !== true
         setIsRound2Open(!portalNowClosed)
         if (inRound2 && portalNowClosed) handleTeleportToRound1()
+      })
+      .subscribe()
+
+    const fetchInitialEventData = async () => {
+      const eventData = await supabase.from('event_control').select('current_round').eq('id', 1).maybeSingle().then(res => res.data as any)
+      if (eventData) {
         handleBroadcast(eventData.current_round)
       }
-    }, 5000)
+      
+      const gameData = await supabase.from('game_state').select('is_active').eq('game_id', 'final').maybeSingle().then(res => res.data as any)
+      const portalNowClosed = !gameData || gameData.is_active !== true
+      setIsRound2Open(!portalNowClosed)
+      if (inRound2 && portalNowClosed) handleTeleportToRound1()
+    }
+    
+    fetchInitialEventData() // Fetch immediately on mount
+
+    const pollInterval = setInterval(fetchInitialEventData, 5000)
 
     return () => {
       supabase.removeChannel(eventChannel)
+      supabase.removeChannel(gameStateChannel)
       clearInterval(pollInterval)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -420,6 +458,35 @@ export default function MapClient({ userData }: MapClientProps) {
       if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') { newPos.x += 1; newDir = 'right' }
 
       if (newPos.x === currentPos.x && newPos.y === currentPos.y && newDir === currentDir && e.key !== 'Enter') return
+
+      // --- PORTAL LOGIC (Checked BEFORE walls so you can walk off the screen) ---
+      if (currentScene === 'LOBBY') {
+        if (newPos.x <= 0 && newPos.y >= 8 && newPos.y <= 11) { setScene('WING_1'); setPosition({ x: WING_W - 2, y: 16 }); return }
+        if (newPos.x >= LOBBY_W - 1 && newPos.y >= 8 && newPos.y <= 11) { setScene('WING_2'); setPosition({ x: 1, y: 16 }); return }
+        if (newPos.y <= 0 && newPos.x >= 8 && newPos.x <= 11) { 
+          if (r2open) {
+            const REQUIRED_GAMES = ['slots', 'roulette', 'blackjack', 'craps', 'poker', 'baccarat', 'dice', 'highcard', 'coinflip', 'vault']
+            const bCount = REQUIRED_GAMES.filter(g => stampsRef.current[g]).length
+            
+            if (bCount < 10) {
+              triggerBouncerMsg("Need 10 badges buddy!", "Skill issue man.")
+              setPosition({ x: newPos.x, y: 1 })
+              return
+            }
+            handleTeleportToRound2()
+          } else {
+            triggerBouncerMsg("The VIP Room is closed.", "Wait for the Pit Boss.")
+            setPosition({ x: newPos.x, y: 1 })
+          }
+          return 
+        }
+      } else if (currentScene === 'WING_1') {
+        if (newPos.x >= WING_W - 1 && newPos.y >= 14 && newPos.y <= 17) { setScene('LOBBY'); setPosition({ x: 1, y: 9 }); return }
+      } else if (currentScene === 'WING_2') {
+        if (newPos.x <= 0 && newPos.y >= 14 && newPos.y <= 17) { setScene('LOBBY'); setPosition({ x: LOBBY_W - 2, y: 9 }); return }
+      } else if (currentScene === 'VIP_ROOM') {
+        if (newPos.y >= VIP_H - 1 && newPos.x >= 12 && newPos.x <= 15) { handleTeleportToRound1(); return }
+      }
 
       if (isBlocked(newPos.x, newPos.y)) {
         if (newDir !== currentDir) setDirection(newDir)
@@ -455,30 +522,7 @@ export default function MapClient({ userData }: MapClientProps) {
 
       setNearTable(foundTableRoute || foundInteract)
 
-      // Portal Logic
-      if (currentScene === 'LOBBY') {
-        if (newPos.x <= 0) { setScene('WING_1'); setPosition({ x: WING_W - 2, y: 16 }); return }
-        if (newPos.x >= LOBBY_W - 1) { setScene('WING_2'); setPosition({ x: 1, y: 16 }); return }
-        if (newPos.y <= 0) { 
-          if (r2open) {
-            // Check badges for VIP room
-            const bCount = Object.values(stampsRef.current).filter(Boolean).length
-            if (bCount < 10) {
-              setBroadcastMessage("DEALER|BOUNCER: Sorry pal, you need 10 badges to get in here.")
-              setPosition({ x: newPos.x, y: 1 })
-              return
-            }
-            handleTeleportToRound2()
-          }
-          return 
-        }
-      } else if (currentScene === 'WING_1') {
-        if (newPos.x >= WING_W - 1) { setScene('LOBBY'); setPosition({ x: 1, y: 9 }); return }
-      } else if (currentScene === 'WING_2') {
-        if (newPos.x <= 0) { setScene('LOBBY'); setPosition({ x: LOBBY_W - 2, y: 9 }); return }
-      } else if (currentScene === 'VIP_ROOM') {
-        if (newPos.y >= VIP_H - 1) { handleTeleportToRound1(); return }
-      }
+      setNearTable(foundTableRoute || foundInteract)
 
       // Broadcast Position
       const now = Date.now()
@@ -555,6 +599,12 @@ export default function MapClient({ userData }: MapClientProps) {
       allEntities.push({ type: 'other-player', y: p.y, key: `player-${p.id}`, data: p })
     }
   })
+  // Bouncers
+  if (scene === 'LOBBY') {
+    LOBBY_BOUNCERS.forEach((b, i) => {
+      allEntities.push({ type: 'dealer', y: b.y, key: `bouncer-${i}`, data: b })
+    })
+  }
   // My player
   allEntities.push({ type: 'my-player', y: position.y, key: 'me', data: position })
 
@@ -768,11 +818,35 @@ export default function MapClient({ userData }: MapClientProps) {
             // --- DEALER ---
             if (entity.type === 'dealer') {
               const d = entity.data
+              
+              // Speech bubble logic for bouncers
+              const isLeftBouncer = d.label === 'BOUNCER' && d.x === 7
+              const isRightBouncer = d.label === 'BOUNCER' && d.x === 12
+              
+              let msg = null
+              if (isLeftBouncer) msg = bouncerMsg.left
+              if (isRightBouncer) msg = bouncerMsg.right
+
               return (
                 <div key={entity.key} className="absolute avatar-shadow"
                   style={{ left: d.x * CELL, top: d.y * CELL, width: CELL, height: CELL, zIndex }}>
+                  
+                  {msg && isLeftBouncer && (
+                    <div className="absolute top-0 right-full mr-2 bg-white text-black font-pixel text-[8px] sm:text-[10px] px-3 py-2 rounded-lg shadow-xl border-2 border-black whitespace-nowrap z-50 animate-bounce">
+                      {msg}
+                      <div className="absolute top-1/2 -translate-y-1/2 -right-[6px] border-solid border-l-white border-l-[6px] border-y-transparent border-y-[5px] border-r-0" />
+                    </div>
+                  )}
+
+                  {msg && !isLeftBouncer && (
+                    <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-white text-black font-pixel text-[8px] sm:text-[10px] px-3 py-2 rounded-lg shadow-xl border-2 border-black whitespace-nowrap z-50 animate-bounce">
+                      {msg}
+                      <div className="absolute -bottom-[6px] left-1/2 -translate-x-1/2 border-solid border-t-white border-t-[6px] border-x-transparent border-x-[5px] border-b-0" />
+                    </div>
+                  )}
+
                   <img src={DEALER_AVATAR} className="w-full h-full scale-90 animate-avatar-bob" alt="Dealer" />
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 name-tag-dealer font-pixel">DEALER</div>
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 name-tag-dealer font-pixel">{d.label || 'DEALER'}</div>
                 </div>
               )
             }

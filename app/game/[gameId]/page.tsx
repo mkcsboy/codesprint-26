@@ -665,33 +665,48 @@ export default function GamePage() {
         }
       }
 
-      // 2. Prepare Code (User Code ONLY)
+      // 2. Prepare Code and Payload
       const finalCode = code
+      const sandboxUrl = process.env.NEXT_PUBLIC_SANDBOX_URL || 'http://localhost:9000'
+      
+      const payload = {
+        language: language,
+        code: finalCode,
+        stdin: ''
+      }
 
-      // 3. Start Web Worker
-      const worker = new Worker('/pythonWorker.js')
+      // 3. Execute via Custom Sandbox Server
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 120000) // 2m timeout
 
-      // 4. Create Timeout Promise (2 Minutes)
-      const timeoutPromise = new Promise<{ error: string }>((resolve) => {
-        setTimeout(() => {
-          resolve({ error: "Execution Timed Out (2m).\nDid you write an infinite loop?" })
-        }, 120000)
-      })
+      let result: { stdout?: string, stderr?: string, error?: string } = {}
+      try {
+        const res = await fetch(`${sandboxUrl}/execute`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+          signal: controller.signal
+        })
+        clearTimeout(timeoutId)
 
-      // 5. Create Worker Execution Promise
-      const executionPromise = new Promise<{ stdout?: string, stderr?: string, error?: string }>((resolve) => {
-        worker.onmessage = (e) => resolve(e.data)
-        worker.onerror = (e) => resolve({ error: e.message })
-      })
-
-      // Send to Worker
-      worker.postMessage({ code: finalCode })
-
-      // RACE! First one to finish wins
-      const result = await Promise.race([executionPromise, timeoutPromise]) as { stdout?: string, stderr?: string, error?: string }
-
-      // Always terminate worker immediately after race finishes to free memory immediately
-      worker.terminate()
+        if (!res.ok) {
+          const errorText = await res.text()
+          result = { error: `Server Error (${res.status}): ${errorText}` }
+        } else {
+          const data = await res.json()
+          if (!data.success) {
+             result = { error: data.error || 'Execution failed' }
+          } else {
+             result = { stdout: data.stdout, stderr: data.stderr }
+          }
+        }
+      } catch (err: any) {
+        if (err.name === 'AbortError') {
+          result = { error: "Execution Timed Out (2m).\nDid you write an infinite loop?" }
+        } else {
+          result = { error: `Network Error: ${err.message}` }
+        }
+      }
 
       // 6. Handle Result
       if (result.error) {

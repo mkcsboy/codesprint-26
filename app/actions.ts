@@ -81,63 +81,79 @@ export async function getTeamId() {
 export async function fetchQuestionData(gameId: string, difficultyStr: string = 'STANDARD') {
   console.log(`DEBUG: fetchQuestionData called with gameId='${gameId}', difficultyStr='${difficultyStr}'`);
   try {
+    const questionGameId = gameId;
+
     const { data, error } = await supabaseAdmin
       .from('question_bank')
       .select('*')
-      .ilike('game_type', gameId)
+      .ilike('game_type', questionGameId)
       .ilike('difficulty', difficultyStr)
+      .eq('is_active', true)
       .limit(1)
       .maybeSingle();
+
+    console.log(`DEBUG: fetchQuestionData result: data=`, data, `error=`, error);
+
 
     // Fallback logic for single obj vs array
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const qData = data as any;
     const questionData = qData && Array.isArray(qData) && qData.length > 0 ? qData[0] : (qData || null);
 
-    if (questionData) {
-      return {
-        success: true,
-        question: {
-          id: questionData.id,
-          content: questionData.problem_statement || questionData.content,
-          starter_code: questionData.starter_code,
-          constraints: questionData.constraints,
-          expected_output: questionData.test_cases && questionData.test_cases.length > 0 ? questionData.test_cases[0].expected : null,
-          test_cases: questionData.test_cases || []
-        }
-      };
+    console.log(`DEBUG: fetchQuestionData result: data=`, questionData, `error=`, error);
+
+    if (error || !questionData) {
+      console.error("Supabase Error fetching question:", error);
+      return { error: "No active questions found for this table/difficulty." };
     }
 
-    // Default fallback question for testing if database is empty
     return {
       success: true,
       question: {
-        id: `test-${gameId}`,
-        content: `Challenge for ${gameId.toUpperCase()}:\nWrite a program that takes input or prints the required result.`,
-        starter_code: `# Write your solution below\ndef solve():\n    print("Hello Codesprint")\n\nsolve()`,
-        constraints: '',
-        expected_output: 'Hello Codesprint',
-        test_cases: [{ input: '', expected: 'Hello Codesprint' }]
+        id: questionData.id,
+        content: questionData.problem_statement || questionData.content, // Support both schemas
+        starter_code: questionData.starter_code,
+        constraints: questionData.constraints, // This could be a string of banned words/symbols separated by commas
+        expected_output: questionData.test_cases && questionData.test_cases.length > 0 ? questionData.test_cases[0].expected : null,
+        test_cases: questionData.test_cases || [] // Raw payload for the UI
       }
     };
   } catch {
-    return {
-      success: true,
-      question: {
-        id: `fallback-${gameId}`,
-        content: `Challenge for ${gameId.toUpperCase()}:\nWrite a program to solve this challenge.`,
-        starter_code: `# Write your solution below\ndef solve():\n    print("Hello Codesprint")\n\nsolve()`,
-        constraints: '',
-        expected_output: 'Hello Codesprint',
-        test_cases: [{ input: '', expected: 'Hello Codesprint' }]
-      }
-    };
+    return { error: "System error fetching question." };
   }
 }
 
-// --- NEW: PLACE BET (TESTING MODE - LOCKS REMOVED) ---
+// --- NEW: PLACE BET ---
 export async function placeBet(teamId: string, amount: number, gameId: string) {
   try {
+    // 0. Verify Table Status & Expiration
+    const [eventRes, gameStateRes] = await Promise.all([
+      supabaseAdmin.from('event_control').select('table_timers, is_paused').eq('id', 1).single(),
+      supabaseAdmin.from('game_state').select('is_active').eq('game_id', gameId).single()
+    ])
+
+    const eventData = eventRes.data as any
+    const gameStateData = gameStateRes.data as any
+
+    const isGlobalPaused = eventData?.is_paused
+    if (isGlobalPaused) return { error: "The entire casino is currently PAUSED." }
+
+    const timers = (eventData?.table_timers || {}) as Record<string, string>
+    const status = timers[`${gameId}_status`]
+    const startTimeStr = timers[gameId]
+    const isStateActive = gameStateData?.is_active
+
+    if (status === 'KILLED' || isStateActive === false) {
+      return { error: "This table is currently CLOSED by the Pit Boss." }
+    }
+
+    if (startTimeStr) {
+      const startMs = new Date(startTimeStr).getTime()
+      if (Date.now() > startMs + (16 * 60000)) {
+        return { error: "The round for this table has already ended! You cannot join." }
+      }
+    }
+
     // 1. Get current balance
     const { data: teamData, error: fetchError } = await supabaseAdmin
       .from('teams')
@@ -145,37 +161,38 @@ export async function placeBet(teamId: string, amount: number, gameId: string) {
       .eq('id', teamId)
       .single()
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .then(res => ({ data: res.data as any, error: res.error }));
+      .then(res => ({ data: res.data as any, error: res.error })); // Keep error separate
 
-    let currentBalance = teamData?.wallet_balance ?? 1000;
     if (fetchError || !teamData) {
-      currentBalance = 1000;
+      return { error: "Failed to read wallet." }
     }
 
-    // If balance is too low during testing, top up to 1000
-    if (currentBalance < amount) {
-      currentBalance = 1000;
+    if (teamData.wallet_balance < amount) {
+      return { error: "Insufficient funds. You need $" + amount }
     }
 
-    const newBalance = Math.max(0, currentBalance - amount);
-
-    // 2. Deduct amount and set current table
-    await supabaseAdmin
+    // 2. Deduct amount and lock them to the table waiting room
+    const newBalance = teamData.wallet_balance - amount
+    const { error: updateError } = await supabaseAdmin
       .from('teams')
       // @ts-expect-error: Next.js/Supabase inference bug
       .update({ wallet_balance: newBalance, current_locked_table: gameId })
-      .eq('id', teamId);
+      .eq('id', teamId)
+
+    if (updateError) {
+      return { error: "Failed to deduct bet." }
+    }
 
     // 3. Log transaction
     await supabaseAdmin.from('transactions').insert({
       team_id: teamId,
       amount: -amount,
-      description: `Game Entry Fee (${gameId})`,
-    } as any);
+      description: `Game Entry Fee`,
+    } as any)
 
-    return { success: true, newBalance };
+    return { success: true, newBalance }
   } catch {
-    return { success: true, newBalance: 1000 };
+    return { error: "System error placing bet." }
   }
 }
 
@@ -239,4 +256,93 @@ export async function submitFinalBet(teamId: string, amount: number) {
     description: `Placed Final Round Wager: ALL IN`
   }
   await supabaseAdmin.from('transactions').insert(txPayload)
+}
+
+// --- NEW: SPIN WHEEL LOGIC ---
+export async function spinWheel(teamId: string, gameId: string) {
+  console.log(`DEBUG: spinWheel called for teamId: ${teamId}, gameId: ${gameId}`)
+  try {
+    const { data, error: fetchErr } = await supabaseAdmin.from('teams').select('wallet_balance').eq('id', teamId).maybeSingle()
+    console.log(`DEBUG: spinWheel fetch data:`, data, `fetchErr:`, fetchErr)
+    const team = data as any
+    if (!team) return { error: 'Team not found' }
+    
+    const newBalance = (team.wallet_balance || 0) - 150
+    if (newBalance < 0) return { error: 'Insufficient funds (150 Credits required for Wheel + Entry).' }
+
+    const payload: any = { wallet_balance: newBalance, current_locked_table: gameId }
+    // @ts-expect-error: Next.js/Supabase inference bug
+    const { error: updateErr } = await supabaseAdmin.from('teams').update(payload).eq('id', teamId)
+    console.log(`DEBUG: spinWheel updateErr:`, updateErr)
+
+    // Log transaction
+    const txPayload: any = {
+      team_id: teamId,
+      amount: -150,
+      description: `Wheel Spin + Entry Fee for ${gameId.toUpperCase()}`
+    }
+    await supabaseAdmin.from('transactions').insert(txPayload)
+
+    return { success: true, newBalance }
+  } catch (error: any) {
+    return { error: error.message || 'System error processing spin.' }
+  }
+}
+
+// --- NEW: AUTOMATED REWARD CLAIM ---
+export async function claimAutomatedReward(teamId: string, payout: number, gameId: string) {
+  console.log(`DEBUG: claimAutomatedReward called for teamId: ${teamId}, payout: ${payout}, gameId: ${gameId}`)
+  try {
+    const { data: teamData, error: fetchError } = await supabaseAdmin
+      .from('teams')
+      .select('wallet_balance')
+      .eq('id', teamId)
+      .single()
+      .then(res => ({ data: res.data as any, error: res.error }));
+
+    if (fetchError || !teamData) {
+      return { error: "Failed to read wallet for reward." }
+    }
+
+    // Anti-double-claim check: ensure no identical transaction in the last 10 minutes
+    const { data: recentTx } = await supabaseAdmin
+      .from('transactions')
+      .select('id, created_at')
+      .eq('team_id', teamId)
+      .eq('description', `Won ${gameId.toUpperCase()} Table (Automated)`)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (recentTx) {
+      const txTime = new Date(recentTx.created_at).getTime();
+      if (Date.now() - txTime < 5000) { // Reduced to 5 seconds to prevent double-click/strict-mode fires
+         return { success: true, newBalance: teamData.wallet_balance };
+      }
+    }
+
+    const newBalance = teamData.wallet_balance + payout;
+    
+    // Update balance
+    const { error: updateError } = await supabaseAdmin
+      .from('teams')
+      // @ts-expect-error: Next.js/Supabase inference bug
+      .update({ wallet_balance: newBalance })
+      .eq('id', teamId);
+
+    if (updateError) {
+      return { error: "Failed to apply reward." }
+    }
+
+    // Log transaction
+    await supabaseAdmin.from('transactions').insert({
+      team_id: teamId,
+      amount: payout,
+      description: `Won ${gameId.toUpperCase()} Table (Automated)`,
+    } as any);
+
+    return { success: true, newBalance };
+  } catch (err) {
+    return { error: "System error claiming reward." };
+  }
 }

@@ -1,5 +1,6 @@
 'use server'
 import { cookies } from 'next/headers'
+import { unstable_noStore as noStore } from 'next/cache'
 import { supabaseAdminRaw as supabaseAdmin } from '@/lib/supabase/server'
 import { Json } from '@/lib/supabase/types'
 
@@ -178,20 +179,24 @@ export async function startTableRound(gameId: string, durationMins: number = 16)
         .update({ table_timers: currentTimers } as any)
         .eq('id', 1)
 
-    if (eventErr) return { error: eventErr.message }
+    if (eventErr) return { error: `Failed to update event control: ${eventErr.message}` }
 
     // Update the game_state table with the actual PIN text Native SQL storage
-    await supabaseAdmin
+    const { error: upsertErr } = await supabaseAdmin
         .from('game_state')
         .upsert({ game_id: gameId, entry_pin: pin, is_active: true } as any)
 
+    if (upsertErr) return { error: `Failed to upsert game state: ${upsertErr.message}` }
+
     // 2. Shut down previously active questions for THIS game table
+    const questionGameId = gameId;
+
     await supabaseAdmin
         .from('question_bank')
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .update({ is_active: false } as any)
         .eq('is_active', true)
-        .ilike('game_type', gameId)
+        .ilike('game_type', questionGameId)
 
     // 3. Select exactly 1 STANDARD and 1 HIGH unused question for THIS game table
     const difficulties = ['STANDARD', 'HIGH']
@@ -201,7 +206,7 @@ export async function startTableRound(gameId: string, durationMins: number = 16)
         const { data: qList } = await supabaseAdmin
             .from('question_bank')
             .select('id')
-            .ilike('game_type', gameId)
+            .ilike('game_type', questionGameId)
             .ilike('difficulty', diff)
             .eq('is_used', false)
 
@@ -246,6 +251,7 @@ export async function awardWin(teamId: string, gameId: string) {
 }
 
 export async function getEventState() {
+    noStore();
     if (!isAdminAuthenticated()) return { error: 'UNAUTHORIZED' }
 
     const { data: control } = await supabaseAdmin
@@ -385,12 +391,19 @@ export async function unbanTeam(teamId: string) {
     return { success: true }
 }
 
-export async function updateStamps(teamId: string, stamps: Json) {
+export async function toggleStamp(teamId: string, game: string) {
     if (!isAdminAuthenticated()) return { error: 'UNAUTHORIZED' }
+
+    // Fetch latest stamps from DB to prevent race conditions
+    const { data: teamData } = await supabaseAdmin.from('teams').select('stamps').eq('id', teamId).single()
+    if (!teamData) return { error: 'Team not found' }
+
+    const stamps = (teamData.stamps as Record<string, boolean>) || {}
+    stamps[game] = !stamps[game]
 
     const { error } = await supabaseAdmin
         .from('teams')
-        .update({ stamps } as any)
+        .update({ stamps: stamps as unknown as Json } as any)
         .eq('id', teamId)
 
     if (error) return { error: error.message }
@@ -399,10 +412,10 @@ export async function updateStamps(teamId: string, stamps: Json) {
     await supabaseAdmin.from('transactions').insert({
         team_id: teamId,
         amount: 0,
-        description: `[ADMIN] Updated Badges`,
+        description: `[ADMIN] Toggled Badge: ${game.toUpperCase()}`,
     } as any)
 
-    return { success: true }
+    return { success: true, stamps }
 }
 
 export async function createTeam(accessCode: string, initialBalance = 100) {
@@ -518,6 +531,74 @@ export async function bulkUploadQuestions(questionsJson: string) {
     }
 }
 
+export async function uploadQuestionsForTable(gameType: string, difficulty: string, questionsJson: string) {
+    if (!isAdminAuthenticated()) return { error: 'UNAUTHORIZED' }
+
+    try {
+        let questions = JSON.parse(questionsJson)
+
+        if (!Array.isArray(questions)) {
+            if (typeof questions === 'object' && questions !== null) {
+                questions = [questions]
+            } else {
+                return { error: 'JSON must be an object or an array' }
+            }
+        }
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        questions = questions.map((q: any) => ({
+            title: q.title || 'Untitled',
+            problem_statement: q.problem_statement || '',
+            starter_code: q.starter_code || '',
+            test_cases: q.test_cases || [],
+            constraints: q.constraints || '',
+            game_type: gameType.toUpperCase(),
+            difficulty: difficulty.toUpperCase(),
+            is_active: false,
+            is_used: false
+        }))
+
+        const { error } = await supabaseAdmin
+            .from('question_bank')
+            .insert(questions)
+
+        if (error) return { error: error.message }
+        return { success: true, count: questions.length }
+    } catch {
+        return { error: 'INVALID JSON FORMAT' }
+    }
+}
+
+export async function deleteQuestion(questionId: string) {
+    if (!isAdminAuthenticated()) return { error: 'UNAUTHORIZED' }
+
+    const { error } = await supabaseAdmin
+        .from('question_bank')
+        .delete()
+        .eq('id', questionId)
+
+    if (error) return { error: error.message }
+    return { success: true }
+}
+
+export async function deleteAllQuestionsForTable(gameType: string, difficulty?: string) {
+    if (!isAdminAuthenticated()) return { error: 'UNAUTHORIZED' }
+
+    let query = supabaseAdmin
+        .from('question_bank')
+        .delete()
+        .ilike('game_type', gameType)
+
+    if (difficulty) {
+        query = query.ilike('difficulty', difficulty)
+    }
+
+    const { error } = await query
+
+    if (error) return { error: error.message }
+    return { success: true }
+}
+
 // =============================================
 // TAB D: "THE EYE" - Analytics
 // =============================================
@@ -567,7 +648,7 @@ export async function broadcastMessage(message: string) {
     // The client-side will subscribe to changes on this table
     const { error } = await supabaseAdmin
         .from('event_control')
-        .update({ current_round: `BROADCAST:${message}` } as any)
+        .update({ current_round: `BROADCAST:${Date.now()}:${message}` } as any)
         .eq('id', 1)
 
     if (error) return { error: error.message }

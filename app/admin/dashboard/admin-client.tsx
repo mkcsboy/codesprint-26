@@ -4,12 +4,13 @@ import { useState, useEffect, useCallback } from 'react'
 import {
     Shield, Pause, Play, Zap, Search, DollarSign, AlertTriangle, Ban,
     Award, Upload, RotateCcw, ToggleLeft, ToggleRight, Trophy, BarChart3,
-    Megaphone, Eye, ChevronDown, RefreshCw, X, Check, Flame
+    Megaphone, Eye, ChevronDown, RefreshCw, X, Check, Flame, Trash2, ChevronRight
 } from 'lucide-react'
 import {
     togglePause, setCurrentRound, getEventState,
-    getAllTeams, adjustWallet, sendWarning, banTeam, unbanTeam, updateStamps,
+    getAllTeams, adjustWallet, sendWarning, banTeam, unbanTeam, toggleStamp,
     getAllQuestions, toggleQuestion, burnQuestion, reshuffleAllQuestions, bulkUploadQuestions,
+    uploadQuestionsForTable, deleteQuestion, deleteAllQuestionsForTable,
     getLeaderboard, getAnalytics, broadcastMessage, forceWin, createTeam,
     startTableRound, setTableStatusState, awardWin, toggleRound2Portal
 } from '../actions'
@@ -17,14 +18,19 @@ import { Json } from '@/lib/supabase/types'
 
 type Tab = 'pit' | 'vault' | 'deck' | 'eye'
 
-const GAME_TYPES = ['slots', 'roulette', 'blackjack', 'holdem', 'craps', 'final'] as const
+const GAME_TYPES = ['slots', 'roulette', 'blackjack', 'craps', 'poker', 'baccarat', 'dice', 'highcard', 'coinflip', 'vault', 'final'] as const
 const GAME_LABELS: Record<string, string> = {
-    slots: '🎰 SLOTS (Debug)',
-    roulette: '🎯 ROULETTE (Predict)',
-    blackjack: '🃏 BLACKJACK (Constraints)',
-    holdem: '♠️ HOLD\'EM (Optimize)',
-    craps: '🎲 CRAPS (Logic)',
-    final: '🏆 FINAL ROUND (All In)',
+    slots: '🎰 SLOTS (Bug Bounty)',
+    roulette: '🎯 ROULETTE (Output Oracle)',
+    blackjack: '🃏 BLACKJACK (Code Relay)',
+    craps: '🎲 CRAPS (Debug Detective)',
+    poker: '🕵️ POKER (Cipher Crack)',
+    baccarat: '🏦 BACCARAT (SQL Heist)',
+    dice: '🎲 DICE (Stack Attack)',
+    highcard: '🃏 HIGH CARD (Complexity Clash)',
+    coinflip: '🪙 COIN FLIP (Algorithm Auction)',
+    vault: '🔐 THE VAULT (DSA)',
+    final: '🏆 FINAL SHOWDOWN (All In)',
 }
 
 export default function AdminDashboard() {
@@ -106,7 +112,9 @@ function ThePit() {
         if (data && !data.error) {
             setIsPaused(data.control?.is_paused || false)
             setIsRound2Open(data.control?.round_2_open || false)
-            setCurrentRoundState(data.control?.current_round || 'slots')
+            if (data.control?.current_round && !data.control.current_round.startsWith('BROADCAST:')) {
+                setCurrentRoundState(data.control.current_round)
+            }
             setLiveFeed(data.recentTx || [])
             setTableTimers(data.control?.table_timers as Record<string, string> || {})
             setActiveTeams(data.activeTeams || [])
@@ -138,16 +146,29 @@ function ThePit() {
 
     const handleRoundChange = async (round: string) => {
         setActionLoading('round')
-        await setCurrentRound(round)
-        setCurrentRoundState(round)
+        const res = await setCurrentRound(round)
+        if (res.error) {
+            alert(`Failed to change round: ${res.error}`)
+        } else {
+            setCurrentRoundState(round)
+        }
         setActionLoading(null)
     }
 
     const handleStartRound = async () => {
         if (!window.confirm(`Are you sure? This will AUTO-BURN active questions for ${GAME_LABELS[currentRound]} and start an isolated 15-minute sync timer just for THIS table.`)) return;
         setActionLoading('start-round')
-        await startTableRound(currentRound, 15)
-        alert(`15-Minute timer started for ${GAME_LABELS[currentRound]}!`)
+        try {
+            const res = await startTableRound(currentRound, 15)
+            if (res.error) {
+                alert(`Error: ${res.error}`)
+            } else {
+                alert(`15-Minute timer started for ${GAME_LABELS[currentRound]}!`)
+            }
+        } catch (err: any) {
+            alert(`Unhandled Server Error: ${err.message}`)
+            console.error(err)
+        }
         refresh()
         setActionLoading(null)
     }
@@ -222,14 +243,26 @@ function ThePit() {
                     {/* Table Controls */}
                     <div className="mt-6 border-t border-white/10 pt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <button
-                                onClick={handleStartRound}
-                                disabled={actionLoading === 'start-round'}
-                                className="w-full h-full flex items-center justify-center gap-2 p-4 bg-red-900/40 hover:bg-red-900/60 border-2 border-red-500 rounded-xl text-red-100 font-pixel text-lg shadow-[0_0_15px_rgba(239,68,68,0.3)] transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                                <Play className="w-5 h-5" />
-                                START {currentRound.toUpperCase()}
-                            </button>
+                            {(() => {
+                                const startTime = tableTimers[currentRound]
+                                const gameStatus = tableTimers[`${currentRound}_status`] || 'ACTIVE'
+                                const isActive = startTime && gameStatus === 'ACTIVE' && (new Date(startTime).getTime() + (16 * 60000) - currentTime > 0)
+
+                                return (
+                                    <button
+                                        onClick={handleStartRound}
+                                        disabled={actionLoading === 'start-round'}
+                                        className={`w-full h-full flex items-center justify-center gap-2 p-4 border-2 rounded-xl font-pixel text-lg transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed
+                                            ${isActive 
+                                                ? 'bg-green-900/40 hover:bg-green-900/60 border-green-500 text-green-100 shadow-[0_0_15px_rgba(34,197,94,0.3)]' 
+                                                : 'bg-red-900/40 hover:bg-red-900/60 border-red-500 text-red-100 shadow-[0_0_15px_rgba(239,68,68,0.3)]'
+                                            }`}
+                                    >
+                                        <Play className="w-5 h-5" />
+                                        {isActive ? `${currentRound.toUpperCase()} IS LIVE` : `START ${currentRound.toUpperCase()}`}
+                                    </button>
+                                )
+                            })()}
                             <p className="text-center text-[10px] text-gray-500 mt-2 font-mono uppercase">
                                 Warning: Auto-burns questions.
                             </p>
@@ -422,6 +455,11 @@ function TheVault() {
         const data = await getAllTeams()
         if (data && !data.error) {
             setTeams(data.teams || [])
+            setSelectedTeam((prev: any) => {
+                if (!prev) return prev
+                const updated = data.teams?.find((t: any) => t.id === prev.id)
+                return updated || prev
+            })
         }
         setLoading(false)
     }, [])
@@ -472,10 +510,11 @@ function TheVault() {
     }
 
     const handleStampToggle = async (teamId: string, currentStamps: any, game: string) => {
-        const stamps = { ...(currentStamps || {}) }
-        stamps[game] = !stamps[game]
         setActionLoading(`stamp-${teamId}-${game}`)
-        await updateStamps(teamId, stamps as unknown as Json)
+        const result = await toggleStamp(teamId, game)
+        if (result && result.stamps && selectedTeam && selectedTeam.id === teamId) {
+            setSelectedTeam({ ...selectedTeam, stamps: result.stamps })
+        }
         await refresh()
         setActionLoading(null)
     }
@@ -764,15 +803,18 @@ function TheVault() {
 }
 
 // ========================================
-// TAB C: "THE DECK" — Question Manager
+// TAB C: "THE DECK" — Question Manager (Per-Table)
 // ========================================
+
+const TABLE_GAME_IDS = ['slots', 'roulette', 'blackjack', 'craps', 'poker', 'baccarat', 'dice', 'highcard', 'coinflip', 'vault'] as const
+
 function TheDeck() {
     const [questions, setQuestions] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
-    const [bulkJson, setBulkJson] = useState('')
-    const [showUpload, setShowUpload] = useState(false)
-    const [filter, setFilter] = useState<string>('all')
+    const [expandedTable, setExpandedTable] = useState<string | null>(null)
     const [actionLoading, setActionLoading] = useState<string | null>(null)
+    const [uploadTarget, setUploadTarget] = useState<{ game: string; difficulty: string } | null>(null)
+    const [uploadJson, setUploadJson] = useState('')
 
     const refresh = useCallback(async () => {
         setLoading(true)
@@ -787,7 +829,14 @@ function TheDeck() {
 
     const freshQuestions = questions.filter(q => !q.is_used)
     const burnedQuestions = questions.filter(q => q.is_used)
-    const filteredQuestions = filter === 'all' ? questions : questions.filter(q => q.game_type === filter.toUpperCase())
+
+    const getQuestionsForTable = (gameType: string, difficulty?: string) => {
+        return questions.filter(q => {
+            const matchGame = q.game_type.toUpperCase() === gameType.toUpperCase()
+            if (difficulty) return matchGame && q.difficulty.toUpperCase() === difficulty.toUpperCase()
+            return matchGame
+        })
+    }
 
     const handleToggle = async (id: string, current: boolean) => {
         setActionLoading(`toggle-${id}`)
@@ -803,22 +852,43 @@ function TheDeck() {
         setActionLoading(null)
     }
 
+    const handleDeleteQuestion = async (id: string) => {
+        if (!window.confirm('Delete this question permanently?')) return
+        setActionLoading(`del-${id}`)
+        await deleteQuestion(id)
+        await refresh()
+        setActionLoading(null)
+    }
+
     const handleReshuffle = async () => {
+        if (!window.confirm('Reset ALL questions to fresh (un-burned) state?')) return
         setActionLoading('reshuffle')
         await reshuffleAllQuestions()
         await refresh()
         setActionLoading(null)
     }
 
-    const handleBulkUpload = async () => {
-        if (!bulkJson.trim()) return
+    const handleUpload = async () => {
+        if (!uploadTarget || !uploadJson.trim()) return
         setActionLoading('upload')
-        const result = await bulkUploadQuestions(bulkJson)
+        const result = await uploadQuestionsForTable(uploadTarget.game, uploadTarget.difficulty, uploadJson)
         if (result && !result.error) {
-            setBulkJson('')
-            setShowUpload(false)
+            setUploadJson('')
+            setUploadTarget(null)
+            alert(`Uploaded ${result.count} question(s)!`)
             await refresh()
+        } else {
+            alert(`Error: ${result?.error || 'Unknown error'}`)
         }
+        setActionLoading(null)
+    }
+
+    const handleDeleteAll = async (gameType: string, difficulty: string) => {
+        const count = getQuestionsForTable(gameType, difficulty).length
+        if (!window.confirm(`Delete all ${count} ${difficulty} questions for ${gameType.toUpperCase()}?`)) return
+        setActionLoading(`delall-${gameType}-${difficulty}`)
+        await deleteAllQuestionsForTable(gameType, difficulty)
+        await refresh()
         setActionLoading(null)
     }
 
@@ -844,7 +914,7 @@ function TheDeck() {
                 </div>
             </div>
 
-            {/* Action Bar */}
+            {/* Global Action Bar */}
             <div className="flex flex-wrap gap-3">
                 <button
                     onClick={handleReshuffle}
@@ -853,47 +923,43 @@ function TheDeck() {
                 >
                     <RotateCcw className="w-3.5 h-3.5" /> RESHUFFLE ALL
                 </button>
-                <button
-                    onClick={() => setShowUpload(!showUpload)}
-                    className="flex items-center gap-2 px-4 py-2 bg-blue-700 hover:bg-blue-600 text-white text-xs font-pixel rounded-lg transition-all"
-                >
-                    <Upload className="w-3.5 h-3.5" /> BULK UPLOAD
-                </button>
                 <button onClick={refresh} className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 text-gray-400 text-xs font-pixel rounded-lg transition-all">
                     <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} /> REFRESH
                 </button>
             </div>
 
-            {/* Bulk Upload Panel */}
-            {showUpload && (
+            {/* Upload Modal */}
+            {uploadTarget && (
                 <div className="bg-[#12121a] rounded-xl border border-blue-900/30 p-6 space-y-4">
                     <div className="flex items-center justify-between">
-                        <h4 className="text-xs font-pixel text-blue-400 tracking-widest">BULK UPLOAD (JSON)</h4>
-                        <button onClick={() => setShowUpload(false)} className="text-gray-600 hover:text-white">
+                        <h4 className="text-xs font-pixel text-blue-400 tracking-widest">
+                            UPLOAD → {uploadTarget.game.toUpperCase()} / {uploadTarget.difficulty.toUpperCase()}
+                        </h4>
+                        <button onClick={() => { setUploadTarget(null); setUploadJson('') }} className="text-gray-600 hover:text-white">
                             <X className="w-4 h-4" />
                         </button>
                     </div>
+                    <p className="text-[10px] text-gray-500 font-mono">
+                        Paste JSON array. game_type and difficulty are auto-filled. Only include: title, problem_statement, starter_code, test_cases, constraints
+                    </p>
                     <textarea
-                        value={bulkJson}
-                        onChange={(e) => setBulkJson(e.target.value)}
+                        value={uploadJson}
+                        onChange={(e) => setUploadJson(e.target.value)}
                         placeholder={`[
   {
-    "game_type": "SLOTS",
-    "difficulty": "STANDARD",
-    "title": "Fix the loop",
+    "title": "Fix the Loop",
     "problem_statement": "The loop runs infinitely...",
-    "starter_code": "def solve(): ...",
+    "starter_code": "def solve():\\n    pass",
     "test_cases": [{"input": "5", "expected": "10"}],
-    "is_used": false,
-    "is_active": true
+    "constraints": ""
   }
 ]`}
                         className="w-full h-48 bg-black/40 border border-blue-900/30 rounded-lg p-4 text-sm font-mono text-blue-200
               placeholder:text-blue-900/40 focus:border-blue-500 focus:outline-none resize-none"
                     />
                     <button
-                        onClick={handleBulkUpload}
-                        disabled={actionLoading === 'upload' || !bulkJson.trim()}
+                        onClick={handleUpload}
+                        disabled={actionLoading === 'upload' || !uploadJson.trim()}
                         className="px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-pixel rounded-lg transition-all disabled:opacity-40"
                     >
                         UPLOAD
@@ -901,88 +967,152 @@ function TheDeck() {
                 </div>
             )}
 
-            {/* Filter */}
-            <div className="flex gap-2 flex-wrap">
-                <button
-                    onClick={() => setFilter('all')}
-                    className={`px-3 py-1.5 text-[10px] font-pixel rounded-lg transition-all
-            ${filter === 'all' ? 'bg-white text-black' : 'bg-white/5 text-gray-500 hover:bg-white/10'}`}
-                >
-                    ALL
-                </button>
-                {GAME_TYPES.map(g => (
-                    <button
-                        key={g}
-                        onClick={() => setFilter(g)}
-                        className={`px-3 py-1.5 text-[10px] font-pixel rounded-lg transition-all
-              ${filter === g ? 'bg-white text-black' : 'bg-white/5 text-gray-500 hover:bg-white/10'}`}
-                    >
-                        {g.toUpperCase()}
-                    </button>
-                ))}
-            </div>
+            {/* Per-Table Sections */}
+            <div className="space-y-3">
+                {TABLE_GAME_IDS.map(gameId => {
+                    const gameLabel = GAME_LABELS[gameId] || gameId.toUpperCase()
+                    const tableQuestions = getQuestionsForTable(gameId)
+                    const standardQs = getQuestionsForTable(gameId, 'STANDARD')
+                    const highQs = getQuestionsForTable(gameId, 'HIGH')
+                    const isExpanded = expandedTable === gameId
+                    const totalExpected = 12
+                    const loaded = tableQuestions.length
+                    const isFull = loaded >= totalExpected
+                    const isEmpty = loaded === 0
 
-            {/* Question List */}
-            <div className="bg-[#12121a] rounded-xl border border-white/10 overflow-hidden">
-                <div className="max-h-[50vh] overflow-y-auto">
-                    {filteredQuestions.map(q => (
-                        <div key={q.id} className={`flex items-center justify-between px-4 py-3 border-b border-white/5 text-sm
-              ${q.is_used ? 'opacity-40' : ''}`}
-                        >
-                            <div className="flex items-center gap-3 min-w-0 flex-grow">
-                                <span className={`text-[9px] font-pixel px-2 py-0.5 rounded shrink-0
-                  ${q.game_type === 'SLOTS' ? 'bg-yellow-900/30 text-yellow-400' :
-                                        q.game_type === 'ROULETTE' ? 'bg-red-900/30 text-red-400' :
-                                            q.game_type === 'BLACKJACK' ? 'bg-blue-900/30 text-blue-400' :
-                                                q.game_type === 'HOLDEM' ? 'bg-green-900/30 text-green-400' :
-                                                    'bg-purple-900/30 text-purple-400'}`}>
-                                    {q.game_type}
-                                </span>
-                                <span className={`text-[9px] font-pixel px-2 py-0.5 rounded shrink-0
-                  ${q.difficulty === 'HIGH' ? 'bg-red-600/20 text-red-300' : 'bg-green-900/20 text-green-300'}`}>
-                                    {q.difficulty}
-                                </span>
-                                <div className="flex flex-col flex-grow ml-2 min-w-0">
-                                    <span className="font-mono text-xs text-white break-words">{q.title}</span>
-                                    {q.problem_statement && (
-                                        <div className="font-sans text-[10px] text-gray-400 mt-1 whitespace-pre-wrap break-words max-h-32 overflow-y-auto">
-                                            {q.problem_statement}
-                                        </div>
-                                    )}
+                    return (
+                        <div key={gameId} className="bg-[#12121a] rounded-xl border border-white/10 overflow-hidden">
+                            {/* Table Header (clickable) */}
+                            <button
+                                onClick={() => setExpandedTable(isExpanded ? null : gameId)}
+                                className="w-full flex items-center justify-between px-5 py-4 hover:bg-white/5 transition-colors"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <ChevronRight className={`w-4 h-4 text-gray-500 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
+                                    <span className="text-sm font-pixel text-white">{gameLabel}</span>
                                 </div>
-                            </div>
-                            <div className="flex items-center gap-2 shrink-0 ml-4">
-                                {q.is_used && (
-                                    <span className="text-[8px] font-pixel text-red-400 bg-red-900/20 px-2 py-0.5 rounded flex-shrink-0">BURNED</span>
-                                )}
-                                <button
-                                    onClick={() => handleToggle(q.id, q.is_active)}
-                                    disabled={!!actionLoading?.startsWith('toggle')}
-                                    className="p-1.5 rounded hover:bg-white/10 transition-colors"
-                                    title={q.is_active ? 'Deactivate' : 'Activate'}
-                                >
-                                    {q.is_active
-                                        ? <ToggleRight className="w-5 h-5 text-green-400" />
-                                        : <ToggleLeft className="w-5 h-5 text-gray-600" />
-                                    }
-                                </button>
-                                <button
-                                    onClick={() => handleBurn(q.id)}
-                                    disabled={q.is_used || !!actionLoading?.startsWith('burn')}
-                                    className="p-1.5 rounded hover:bg-red-900/20 text-gray-600 hover:text-red-400 transition-colors disabled:opacity-20"
-                                    title="Burn Card"
-                                >
-                                    <Flame className="w-4 h-4" />
-                                </button>
-                            </div>
+                                <div className="flex items-center gap-3">
+                                    <span className={`text-[10px] font-mono px-2 py-0.5 rounded ${
+                                        isFull ? 'bg-green-900/30 text-green-400' :
+                                        isEmpty ? 'bg-red-900/30 text-red-400' :
+                                        'bg-yellow-900/30 text-yellow-400'
+                                    }`}>
+                                        {loaded}/{totalExpected}
+                                    </span>
+                                    <div className="flex gap-1">
+                                        <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded ${
+                                            standardQs.length >= 6 ? 'bg-green-900/20 text-green-400' : 'bg-red-900/20 text-red-400'
+                                        }`}>
+                                            STD {standardQs.length}/6
+                                        </span>
+                                        <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded ${
+                                            highQs.length >= 6 ? 'bg-green-900/20 text-green-400' : 'bg-red-900/20 text-red-400'
+                                        }`}>
+                                            HIGH {highQs.length}/6
+                                        </span>
+                                    </div>
+                                </div>
+                            </button>
+
+                            {/* Expanded Content */}
+                            {isExpanded && (
+                                <div className="border-t border-white/5 px-5 py-4">
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                        {/* STANDARD Column */}
+                                        {(['STANDARD', 'HIGH'] as const).map(difficulty => {
+                                            const diffQs = difficulty === 'STANDARD' ? standardQs : highQs
+                                            const diffColor = difficulty === 'STANDARD' ? 'green' : 'red'
+
+                                            return (
+                                                <div key={difficulty} className="space-y-3">
+                                                    <div className="flex items-center justify-between">
+                                                        <h5 className={`text-[10px] font-pixel tracking-widest text-${diffColor}-400`}>
+                                                            {difficulty === 'HIGH' ? '🔥 HIGH ROLLER' : '📋 STANDARD'} ({diffQs.length}/6)
+                                                        </h5>
+                                                        <div className="flex gap-2">
+                                                            <button
+                                                                onClick={() => setUploadTarget({ game: gameId, difficulty })}
+                                                                className={`flex items-center gap-1 px-2 py-1 text-[9px] font-pixel bg-${diffColor}-900/20 hover:bg-${diffColor}-900/40 text-${diffColor}-400 rounded transition-all`}
+                                                            >
+                                                                <Upload className="w-3 h-3" /> UPLOAD
+                                                            </button>
+                                                            {diffQs.length > 0 && (
+                                                                <button
+                                                                    onClick={() => handleDeleteAll(gameId, difficulty)}
+                                                                    disabled={!!actionLoading?.startsWith('delall')}
+                                                                    className="flex items-center gap-1 px-2 py-1 text-[9px] font-pixel bg-red-900/20 hover:bg-red-900/40 text-red-400 rounded transition-all disabled:opacity-40"
+                                                                >
+                                                                    <Trash2 className="w-3 h-3" /> CLEAR
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Question List */}
+                                                    <div className="bg-black/20 rounded-lg border border-white/5 overflow-hidden max-h-[40vh] overflow-y-auto">
+                                                        {diffQs.length === 0 ? (
+                                                            <div className="text-center text-gray-600 text-[10px] py-6 font-mono">
+                                                                No {difficulty.toLowerCase()} questions uploaded
+                                                            </div>
+                                                        ) : (
+                                                            diffQs.map((q: any) => (
+                                                                <div key={q.id} className={`flex items-start justify-between px-3 py-2.5 border-b border-white/5 text-xs ${q.is_used ? 'opacity-40' : ''}`}>
+                                                                    <div className="flex-grow min-w-0 mr-2">
+                                                                        <div className="flex items-center gap-2">
+                                                                            <span className="font-mono text-white text-[11px] break-words">{q.title}</span>
+                                                                            {q.is_used && (
+                                                                                <span className="text-[7px] font-pixel text-red-400 bg-red-900/20 px-1.5 py-0.5 rounded shrink-0">BURNED</span>
+                                                                            )}
+                                                                            {q.is_active && (
+                                                                                <span className="text-[7px] font-pixel text-green-400 bg-green-900/20 px-1.5 py-0.5 rounded shrink-0">LIVE</span>
+                                                                            )}
+                                                                        </div>
+                                                                        {q.problem_statement && (
+                                                                            <p className="text-[9px] text-gray-500 mt-1 line-clamp-2">{q.problem_statement}</p>
+                                                                        )}
+                                                                    </div>
+                                                                    <div className="flex items-center gap-1 shrink-0">
+                                                                        <button
+                                                                            onClick={() => handleToggle(q.id, q.is_active)}
+                                                                            disabled={!!actionLoading?.startsWith('toggle')}
+                                                                            className="p-1 rounded hover:bg-white/10 transition-colors"
+                                                                            title={q.is_active ? 'Deactivate' : 'Activate'}
+                                                                        >
+                                                                            {q.is_active
+                                                                                ? <ToggleRight className="w-4 h-4 text-green-400" />
+                                                                                : <ToggleLeft className="w-4 h-4 text-gray-600" />
+                                                                            }
+                                                                        </button>
+                                                                        <button
+                                                                            onClick={() => handleBurn(q.id)}
+                                                                            disabled={q.is_used || !!actionLoading?.startsWith('burn')}
+                                                                            className="p-1 rounded hover:bg-red-900/20 text-gray-600 hover:text-red-400 transition-colors disabled:opacity-20"
+                                                                            title="Burn"
+                                                                        >
+                                                                            <Flame className="w-3.5 h-3.5" />
+                                                                        </button>
+                                                                        <button
+                                                                            onClick={() => handleDeleteQuestion(q.id)}
+                                                                            disabled={!!actionLoading?.startsWith('del-')}
+                                                                            className="p-1 rounded hover:bg-red-900/20 text-gray-600 hover:text-red-400 transition-colors disabled:opacity-20"
+                                                                            title="Delete"
+                                                                        >
+                                                                            <Trash2 className="w-3.5 h-3.5" />
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                            ))
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            )
+                                        })}
+                                    </div>
+                                </div>
+                            )}
                         </div>
-                    ))}
-                    {filteredQuestions.length === 0 && (
-                        <div className="text-center text-gray-600 text-sm py-10 font-mono">
-                            No questions found
-                        </div>
-                    )}
-                </div>
+                    )
+                })}
             </div>
         </div>
     )
@@ -1094,7 +1224,7 @@ function TheEye() {
                                             </span>
                                         ))}
                                     </div>
-                                    <span className="text-xs text-gray-500 font-mono">{stampCount}/5</span>
+                                    <span className="text-xs text-gray-500 font-mono">{stampCount}/10</span>
                                     <span className="font-mono text-sm font-bold text-yellow-400 w-20 text-right">${team.wallet_balance}</span>
                                 </div>
                             </div>

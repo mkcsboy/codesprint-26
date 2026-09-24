@@ -3,132 +3,124 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
+import { Group as PanelGroup, Panel, Separator as PanelResizeHandle } from 'react-resizable-panels'
 import CodeEditor from '@/components/CodeEditor'
+import SpinWheel from '@/components/SpinWheel'
 import { supabase } from '@/lib/supabase/client'
 import LogoutButton from '@/components/LogoutButton'
+import { claimAutomatedReward } from '@/app/actions'
 
 // --- CONFIGURATION ---
 const GAME_CONFIG: Record<string, any> = {
   slots: {
-    title: 'SLOTS: THE DEBUGGER',
+    title: 'SLOTS: BUG BOUNTY',
     color: 'text-yellow-400',
     neonClass: 'neon-text-gold',
     bg: 'bg-yellow-900/20',
     glowShadow: 'shadow-neon-gold',
     borderColor: 'border-neon-gold/50',
-    description: "The machine is broken! Fix the code to hit the jackpot.",
-    rules: ["Fix the BUG in the code.", "Must pass hidden test cases.", "Time: 15 Mins."],
-    starter: `def solve(n):\n    # Buggy code: It should return n * 2\n    return n + 2\n    \n# Do not delete this!\nprint(solve(10))`
+    description: "A rapid debugging game where teams receive intentionally broken programs and must identify and fix as many bugs as possible.",
+    rules: ["Identify the bug.", "Submit fix against test cases.", "Clear as many as possible in 10 mins."],
+    starter: `def find_max(arr):\n    # Buggy code: fix the condition\n    m = arr[0]\n    for num in arr:\n        if num < m:\n            m = num\n    return m\n\nprint(find_max([1, 5, 3, 9, 2]))`
   },
   roulette: {
-    title: 'ROULETTE: PREDICTION',
+    title: 'ROULETTE: OUTPUT ORACLE',
     color: 'text-red-500',
     neonClass: 'neon-text-red',
     bg: 'bg-red-900/20',
     glowShadow: 'shadow-neon-red',
     borderColor: 'border-neon-red/50',
-    description: "Predict the output. No running code allowed!",
-    rules: ["Analyze the code.", "Standard: Choose Option.", "High Roller: Type Answer."],
+    description: "Predict the exact output of the given code without running it.",
+    rules: ["Trace the code manually.", "Submit the exact output.", "Incorrect attempts induce a penalty."],
     starter: ""
   },
   blackjack: {
-    title: 'BLACKJACK: CONSTRAINTS',
+    title: 'BLACKJACK: CODE RELAY',
     color: 'text-blue-400',
     neonClass: 'neon-text-blue',
     bg: 'bg-blue-900/20',
     glowShadow: 'shadow-neon-blue',
     borderColor: 'border-neon-blue/50',
-    description: "Beat the dealer without using forbidden words.",
-    rules: ["Solve the problem.", "Avoid BANNED words.", "Time: 15 Mins."],
-    starter: `def blackjack_sum(a, b):\n    # Constraint: Do not use the '+' symbol\n    return 0`
+    description: "A collaborative coding challenge where the keyboard moves between teammates.",
+    rules: ["Player 1 starts.", "Keyboard passes at signal.", "Final player submits."],
+    starter: `def word_frequency(text):\n    # Player 1: Handle input\n    pass`
   },
   craps: {
-    title: 'CRAPS: EDGE CASES',
+    title: 'CRAPS: DEBUG DETECTIVE',
     color: 'text-purple-400',
     neonClass: 'neon-text-purple',
     bg: 'bg-purple-900/20',
     glowShadow: 'shadow-neon-purple',
     borderColor: 'border-neon-purple/50',
-    description: "Pass the hidden edge cases.",
-    rules: ["Handle weird inputs.", "Pass all hidden tests."],
-    starter: `def roll_dice(val):\n    return val`
+    description: "Investigate one mysterious failure using program output and clues.",
+    rules: ["Investigate the case file.", "Identify underlying defect.", "Fix and submit."],
+    starter: `def count_vowels(s):\n    # Fails for uppercase input\n    return sum(1 for c in s if c in 'aeiou')`
   },
   poker: {
     title: 'POKER: CIPHER CRACK',
-    color: 'text-indigo-400',
-    neonClass: 'neon-text-blue',
-    bg: 'bg-indigo-900/20',
-    glowShadow: 'shadow-neon-blue',
-    borderColor: 'border-neon-blue/50',
-    description: "Crack the secret cryptographic cipher.",
-    rules: ["Decode the encrypted payload.", "Optimize string operations."],
-    starter: `def decode_cipher(s):\n    # Decode the message\n    return s[::-1]`
-  },
-  baccarat: {
-    title: 'BACCARAT: MATRIX HEIST',
-    color: 'text-emerald-400',
-    neonClass: 'neon-text-green',
-    bg: 'bg-emerald-900/20',
-    glowShadow: 'shadow-neon-green',
-    borderColor: 'border-neon-green/50',
-    description: "Manipulate multidimensional arrays and matrix logic.",
-    rules: ["2D Array transformation.", "Time: 15 Mins."],
-    starter: `def matrix_heist(grid):\n    # Transform the grid\n    return grid`
-  },
-  dice: {
-    title: 'DICE: STACK ATTACK',
-    color: 'text-orange-400',
-    neonClass: 'neon-text-gold',
-    bg: 'bg-orange-900/20',
-    glowShadow: 'shadow-neon-gold',
-    borderColor: 'border-neon-gold/50',
-    description: "Solve stack & queue evaluation challenges.",
-    rules: ["Use stack data structure.", "O(N) time complexity."],
-    starter: `def evaluate_stack(ops):\n    stack = []\n    for op in ops:\n        pass\n    return stack`
-  },
-  highcard: {
-    title: 'HIGH CARD: COMPLEXITY CLASH',
-    color: 'text-pink-400',
-    neonClass: 'neon-text-red',
-    bg: 'bg-pink-900/20',
-    glowShadow: 'shadow-neon-red',
-    borderColor: 'border-neon-red/50',
-    description: "Defeat algorithmic bottlenecks and reduce Big-O complexity.",
-    rules: ["Target: O(N log N) or O(N).", "Pass large scale inputs."],
-    starter: `def find_highest(cards):\n    return max(cards)`
-  },
-  coinflip: {
-    title: 'COIN FLIP: ALGORITHM AUCTION',
-    color: 'text-amber-400',
-    neonClass: 'neon-text-gold',
-    bg: 'bg-amber-900/20',
-    glowShadow: 'shadow-neon-gold',
-    borderColor: 'border-neon-gold/50',
-    description: "Probabilistic and dynamic programming challenge.",
-    rules: ["Compute probabilities or optimal strategy."],
-    starter: `def coin_probability(flips):\n    return sum(flips) / len(flips)`
-  },
-  vault: {
-    title: 'THE VAULT: DSA CHALLENGE',
-    color: 'text-teal-400',
-    neonClass: 'neon-text-green',
-    bg: 'bg-teal-900/20',
-    glowShadow: 'shadow-neon-green',
-    borderColor: 'border-neon-green/50',
-    description: "The core vault security system. Master DSA.",
-    rules: ["Tree/Graph traversal required.", "Zero memory leaks."],
-    starter: `def unlock_vault(graph, root):\n    return []`
-  },
-  holdem: {
-    title: 'TEXAS HOLD\'EM: DSA',
     color: 'text-green-400',
     neonClass: 'neon-text-green',
     bg: 'bg-green-900/20',
     glowShadow: 'shadow-neon-green',
     borderColor: 'border-neon-green/50',
-    description: "Master Data Structures and Algorithms to win the pot.",
-    rules: ["Implement the optimal algorithm.", "Use standard Python data structures.", "Time: 15 Mins."],
-    starter: `def solve_dsa(data):\n    # Implement your algorithm here\n    pass`
+    description: "Decode messages to uncover the final code.",
+    rules: ["Identify the transformation.", "Solve one stage to reveal the next.", "Recover the final message."],
+    starter: `def decode(message):\n    # Implement the decoding logic\n    pass`
+  },
+  baccarat: {
+    title: 'BACCARAT: SQL HEIST',
+    color: 'text-red-400',
+    neonClass: 'neon-text-red',
+    bg: 'bg-red-900/20',
+    glowShadow: 'shadow-neon-red',
+    borderColor: 'border-neon-red/50',
+    description: "Query a small casino database to uncover information and retrieve a secret.",
+    rules: ["Write SQL queries.", "Unlock successive clues.", "Reveal the final secret."],
+    starter: `-- Example: Find player with highest winnings\nSELECT * FROM players LIMIT 1;`
+  },
+  dice: {
+    title: 'DICE: STACK ATTACK',
+    color: 'text-yellow-400',
+    neonClass: 'neon-text-gold',
+    bg: 'bg-yellow-900/20',
+    glowShadow: 'shadow-neon-gold',
+    borderColor: 'border-neon-gold/50',
+    description: "A focused stack challenge combining coding and rapid problem solving.",
+    rules: ["Use stack operations.", "Test against hidden cases.", "Pass required tests to win."],
+    starter: `def is_balanced(expression):\n    # Use a stack to validate brackets\n    stack = []\n    return True`
+  },
+  highcard: {
+    title: 'HIGH CARD: COMPLEXITY CLASH',
+    color: 'text-blue-400',
+    neonClass: 'neon-text-blue',
+    bg: 'bg-blue-900/20',
+    glowShadow: 'shadow-neon-blue',
+    borderColor: 'border-neon-blue/50',
+    description: "Identify or generate the correct programming pattern using code.",
+    rules: ["Study the expected pattern.", "Write code to generate it.", "Clear test cases."],
+    starter: `def generate_pattern(n):\n    # Generate a reverse pyramid pattern\n    pass`
+  },
+  coinflip: {
+    title: 'COIN FLIP: ALGORITHM AUCTION',
+    color: 'text-yellow-500',
+    neonClass: 'neon-text-gold',
+    bg: 'bg-yellow-900/20',
+    glowShadow: 'shadow-neon-gold',
+    borderColor: 'border-neon-gold/50',
+    description: "Decide how much assistance you want before solving the problem. Hints cost credits!",
+    rules: ["Choose assistance level.", "Hints reduce reward.", "Solve and submit."],
+    starter: `def solve_auction(arr):\n    # Consider a two-pointer approach\n    pass`
+  },
+  vault: {
+    title: 'THE VAULT: DSA',
+    color: 'text-purple-400',
+    neonClass: 'neon-text-purple',
+    bg: 'bg-purple-900/20',
+    glowShadow: 'shadow-neon-purple',
+    borderColor: 'border-neon-purple/50',
+    description: "A clean technical challenge focusing on core programming and algorithm skills.",
+    rules: ["Analyze constraints.", "Implement optimal solution.", "Pass all test cases."],
+    starter: `def two_sum(nums, target):\n    # Implement an O(n) solution\n    pass`
   },
   final: {
     title: 'FINAL ROUND: ALL IN',
@@ -187,13 +179,14 @@ function CoinRain() {
 export default function GamePage() {
   const params = useParams()
   const router = useRouter()
-  const rawGameId = (params.gameId as string) || 'slots'
-  const gameId = rawGameId.toLowerCase()
-  const config = GAME_CONFIG[gameId] || GAME_CONFIG['slots']
+  const gameId = params.gameId as string
+  const config = GAME_CONFIG[gameId as keyof typeof GAME_CONFIG]
 
   // --- STATE ---
   const [phase, setPhase] = useState<'RULES' | 'BETTING' | 'WAITING' | 'GAME'>('RULES')
   const [difficulty, setDifficulty] = useState<'STANDARD' | 'HIGH' | null>(null)
+  const [selectedBet, setSelectedBet] = useState<'STANDARD' | 'HIGH' | null>(null)
+  const [showAdminWaitModal, setShowAdminWaitModal] = useState(false)
 
 
   // Editor State
@@ -201,7 +194,6 @@ export default function GamePage() {
   const [output, setOutput] = useState("")
   const [isRunning, setIsRunning] = useState(false)
   const [hasError, setHasError] = useState(false)
-  const [selectedLanguage, setSelectedLanguage] = useState('python')
 
   // Roulette State
 
@@ -215,24 +207,31 @@ export default function GamePage() {
   const [teamId, setTeamId] = useState<string | null>(null)
 
   // Timer & Overhaul State
-  const [roundStartTime, setRoundStartTime] = useState<string | null>(new Date().toISOString())
-  const [tableStatus, setTableStatus] = useState<string>('ACTIVE')
+  const [roundStartTime, setRoundStartTime] = useState<string | null>(null)
+  const [tableStatus, setTableStatus] = useState<string>('WAITING')
 
   const [roundDuration, setRoundDuration] = useState<number>(15)
-  const [timeLeft, setTimeLeft] = useState<string>("15:00")
+  const [timeLeft, setTimeLeft] = useState<string>("--:--")
   const [showSuccessModal, setShowSuccessModal] = useState(false)
   const [showBustEffect, setShowBustEffect] = useState(false)
   const [actualPin, setActualPin] = useState<string | null>(null)
   const [enteredPin, setEnteredPin] = useState<string>('')
-  const [isUnlockedLocally, setIsUnlockedLocally] = useState<boolean>(true)
+  const [isUnlockedLocally, setIsUnlockedLocally] = useState<boolean>(false)
+  const [panelLayout, setPanelLayout] = useState([25, 55, 20])
+  const [language, setLanguage] = useState<string>('python')
+  const [wheelMultiplier, setWheelMultiplier] = useState<number>(0)
+  const [rewardClaimed, setRewardClaimed] = useState<boolean>(false)
+  const [isSpinningWheel, setIsSpinningWheel] = useState<boolean>(false)
 
   // Dynamic Content State
   const [dynamicConfig, setDynamicConfig] = useState<{
     description: string,
     starter: string,
     expected_output?: string,
-    test_cases?: any[]
+    test_cases?: any[],
+    options?: string[]
   } | null>(null)
+  const [selectedMcqOption, setSelectedMcqOption] = useState<string>('')
 
   // Timer urgency
   const isTimerUrgent = timeLeft !== '--:--' && (() => {
@@ -255,10 +254,6 @@ export default function GamePage() {
       // Only load fallback layout baseline here.
       if (config) setCode(config.starter)
 
-      // Set test defaults
-      setTableStatus('ACTIVE')
-      setIsUnlockedLocally(true)
-
       // Fetch initial event and wallet state
       if (tid) {
         const [teamRes, eventRes, gameStateRes] = await Promise.all([
@@ -271,23 +266,58 @@ export default function GamePage() {
         const eventData = eventRes.data as any
         const gameStateData = gameStateRes.data as any
 
-        // Bind PIN regardless of eventData succeeding
-        const rPin = gameStateData?.entry_pin || null
+        const timers = eventData?.table_timers || {}
+        
+        // Bind PIN regardless of eventData succeeding, fallback to table_timers if game_state row is missing
+        const rPin = gameStateData?.entry_pin || timers[`${gameId.toLowerCase()}_pin`] || null
         setActualPin(rPin)
 
         if (eventData) {
+          setIsPaused(eventData.is_paused)
+          const rTime = timers[gameId.toLowerCase() as string] || null
+          setRoundStartTime(rTime)
+          
           if (eventData.current_round?.startsWith('BROADCAST:')) {
             setBroadcastMessage(eventData.current_round.replace('BROADCAST:', ''))
           }
 
+
+
+
           if (teamData) {
             setWalletBalance(teamData.wallet_balance)
-            if (teamData.current_locked_table === `WIN_${gameId.toUpperCase()}`) {
+            if (teamData.current_locked_table === 'BANNED') {
+              alert("YOU ARE BANNED.")
+              window.location.href = '/'
+            } else if (teamData.current_locked_table === `WIN_${gameId.toUpperCase()}`) {
               setShowSuccessModal(true)
             } else if (teamData.current_locked_table === gameId) {
               const savedDiff = localStorage.getItem(`cs_diff_${gameId}`) as 'STANDARD' | 'HIGH' | null
               if (savedDiff) setDifficulty(savedDiff)
-              setPhase('GAME')
+
+              // If they were already playing and no reset happened locally, put them back
+              const savedJoinTime = localStorage.getItem(`cs_join_${gameId}`)
+              const eventTableStatus = timers[`${gameId.toLowerCase()}_status`]
+              const currentStatus = eventTableStatus || (gameStateData?.is_active ? 'ACTIVE' : 'WAITING')
+              setTableStatus(currentStatus)
+
+              if (rPin && localStorage.getItem(`cs_unlocked_${gameId}`) === rPin) {
+                setIsUnlockedLocally(true)
+              }
+
+              // A table is Live if the Admin flagged it ACTIVE
+              if (savedJoinTime && currentStatus === 'ACTIVE') {
+                setPhase('GAME')
+              } else if (currentStatus === 'ACTIVE' && !savedJoinTime) {
+                // Failsafe for missing localstorage
+                setPhase('GAME')
+              } else {
+                // setJoinedRoundTime(Date.now().toString())
+                setPhase('WAITING')
+              }
+            } else {
+              localStorage.removeItem(`cs_diff_${gameId}`)
+              localStorage.removeItem(`cs_join_${gameId}`)
             }
           }
         }
@@ -322,6 +352,12 @@ export default function GamePage() {
         const individualStatus = timers[`${gameId.toLowerCase()}_status`]
         if (individualStatus) {
           setTableStatus(individualStatus)
+        }
+        
+        // Also update PIN from table_timers if present (fallback for Vault)
+        const tablePin = timers[`${gameId.toLowerCase()}_pin`]
+        if (tablePin) {
+          setActualPin(tablePin)
         }
 
         if (newRecord.current_round && newRecord.current_round.startsWith('BROADCAST:')) {
@@ -373,6 +409,9 @@ export default function GamePage() {
 
       if (gameStateData && gameStateData.entry_pin !== undefined) {
         setActualPin(gameStateData.entry_pin)
+      } else if (eventData?.table_timers) {
+        const tablePin = eventData.table_timers[`${gameId.toLowerCase()}_pin`]
+        if (tablePin) setActualPin(tablePin)
       }
 
       if (eventData) {
@@ -415,6 +454,31 @@ export default function GamePage() {
     }
   }, [teamId, gameId])
 
+  // ============================================================
+  // AUTOMATED REWARD CLAIM EFFECT
+  // ============================================================
+  useEffect(() => {
+    if (showSuccessModal && !rewardClaimed && teamId) {
+      setRewardClaimed(true)
+      
+      const payout = Math.floor(difficulty === 'HIGH' ? 400 : (150 * (wheelMultiplier > 0 ? wheelMultiplier : 1)))
+      
+      const claim = async () => {
+        try {
+          const res = await claimAutomatedReward(teamId, payout, gameId)
+          if (res.error) {
+            console.error("Reward Error:", res.error)
+          } else if (res.success && res.newBalance !== undefined) {
+            setWalletBalance(res.newBalance)
+          }
+        } catch (e) {
+          console.error("System Error claiming reward:", e)
+        }
+      }
+      claim()
+    }
+  }, [showSuccessModal, rewardClaimed, teamId, difficulty, wheelMultiplier, gameId])
+
   // --- WAITING ROOM SYNCHRONIZATION ---
   useEffect(() => {
     // 2. Safe deterministic transition based purely on Admin's database status flag
@@ -451,14 +515,17 @@ export default function GamePage() {
     }
   }, [phase, dynamicConfig, gameId, difficulty, config])
 
-  // --- INDIVIDUAL TABLE TERMINATION WATCHER (DISABLED IN TEST MODE) ---
+  // --- INDIVIDUAL TABLE TERMINATION WATCHER ---
   useEffect(() => {
-    // Disabled in testing mode so game is always playable
+    if (tableStatus === 'KILLED' && phase === 'GAME') {
+      alert("⚠️ The Pit Boss has forcefully terminated this table's gameplay. All progress is lost.")
+      router.push('/map')
+    }
   }, [tableStatus, phase, router])
 
   // --- GLOBAL TIMER COUNTDOWN HOOK ---
   useEffect(() => {
-    if (phase !== 'GAME' || !roundStartTime) return;
+    if (phase !== 'GAME' || !roundStartTime || isPaused || tableStatus === 'PAUSED') return;
 
     const interval = setInterval(() => {
       const start = new Date(roundStartTime).getTime()
@@ -467,7 +534,13 @@ export default function GamePage() {
       const diff = end - now
 
       if (diff <= 0) {
-        setTimeLeft("15:00")
+        setTimeLeft("00:00")
+        clearInterval(interval)
+        alert(`⏰ TIME OUT! The 15 minutes have expired. Your team lost this game.`)
+        if (teamId) {
+          import('@/app/actions').then(({ unlockPlayer }) => unlockPlayer(teamId))
+        }
+        router.push('/map')
       } else {
         const m = Math.floor(diff / 60000)
         const s = Math.floor((diff % 60000) / 1000)
@@ -476,15 +549,20 @@ export default function GamePage() {
     }, 1000)
 
     return () => clearInterval(interval)
-  }, [phase, roundStartTime, roundDuration])
+  }, [phase, roundStartTime, roundDuration, isPaused, tableStatus, router, teamId])
 
   // --- BET HANDLER ---
   const [isBetting, setIsBetting] = useState(false)
 
-  const handleBet = async (selectedDiff: 'STANDARD' | 'HIGH') => {
+  const handleBet = async () => {
+    if (!selectedBet) return
+    if (tableStatus !== 'ACTIVE') {
+      setShowAdminWaitModal(true)
+      return
+    }
     if (!teamId) return alert("System Error: Team ID not found")
     setIsBetting(true)
-    const betAmount = selectedDiff === 'STANDARD' ? 100 : 300
+    const betAmount = selectedBet === 'STANDARD' ? 100 : 200
 
     const { placeBet } = await import('@/app/actions')
     const res = await placeBet(teamId, betAmount, gameId)
@@ -497,16 +575,16 @@ export default function GamePage() {
 
     if (res.success && typeof res.newBalance === 'number') {
       setWalletBalance(res.newBalance)
-      setDifficulty(selectedDiff)
-      localStorage.setItem(`cs_diff_${gameId}`, selectedDiff)
+      setDifficulty(selectedBet)
+      localStorage.setItem(`cs_diff_${gameId}`, selectedBet)
 
-      setPhase('GAME')
+      setPhase('WAITING')
     }
     setIsBetting(false)
   }
 
   // --- SUBMIT HANDLER (WEB WORKER ENGINE) ---
-  const handleSubmit = async () => {
+  const handleSubmit = async (isSubmit: boolean = true) => {
     setIsRunning(true)
     setHasError(false)
     setOutput("Executing...")
@@ -534,7 +612,30 @@ export default function GamePage() {
       return
     }
 
-    // --- LOGIC B: SANDBOX SERVER EXECUTION ---
+    // --- LOGIC A2: BACCARAT (MCQ) ---
+    if (gameId === 'baccarat') {
+      setTimeout(() => {
+        if (!dynamicConfig?.expected_output) {
+          setOutput("❌ ERROR: No answer key found for this question.")
+          setHasError(true)
+          setIsRunning(false)
+          return
+        }
+
+        if (selectedMcqOption.trim() === dynamicConfig.expected_output.trim()) {
+          setShowSuccessModal(true)
+        } else {
+          setOutput("❌ WRONG ANSWER. Please try again.")
+          setHasError(true)
+          setShowBustEffect(true)
+          setTimeout(() => setShowBustEffect(false), 500)
+        }
+        setIsRunning(false)
+      }, 500)
+      return
+    }
+
+    // --- LOGIC B: LOCAL PYTHON WEB WORKER EXECUTION ---
     try {
       // 1. Fetch constraints and hidden tests from Supabase Action
       const { fetchQuestionData } = await import('@/app/actions')
@@ -558,30 +659,43 @@ export default function GamePage() {
           setHasError(true)
           setShowBustEffect(true)
           setTimeout(() => setShowBustEffect(false), 500)
+          // TODO: Deduct points
           setIsRunning(false)
           return
         }
       }
 
-      // 2. Send code to the Sandbox Server
-      const sandboxUrl = process.env.NEXT_PUBLIC_SANDBOX_URL || 'http://localhost:9000'
-      const response = await fetch(`${sandboxUrl}/execute`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ language: selectedLanguage, code }),
+      // 2. Prepare Code (User Code ONLY)
+      const finalCode = code
+
+      // 3. Start Web Worker
+      const worker = new Worker('/pythonWorker.js')
+
+      // 4. Create Timeout Promise (2 Minutes)
+      const timeoutPromise = new Promise<{ error: string }>((resolve) => {
+        setTimeout(() => {
+          resolve({ error: "Execution Timed Out (2m).\nDid you write an infinite loop?" })
+        }, 120000)
       })
 
-      if (!response.ok) {
-        throw new Error(`Sandbox server returned ${response.status}`)
-      }
+      // 5. Create Worker Execution Promise
+      const executionPromise = new Promise<{ stdout?: string, stderr?: string, error?: string }>((resolve) => {
+        worker.onmessage = (e) => resolve(e.data)
+        worker.onerror = (e) => resolve({ error: e.message })
+      })
 
-      const result = await response.json() as { success: boolean, stdout?: string, stderr?: string, error?: string | null }
+      // Send to Worker
+      worker.postMessage({ code: finalCode })
 
-      // 3. Handle Result
-      if (!result.success || result.error) {
-        const errorMsg = result.error || result.stderr || 'Unknown error'
-        const stdout = result.stdout ? `> OUTPUT:\n${result.stdout}\n\n` : ''
-        setOutput(`${stdout}❌ ERROR:\n${errorMsg}`)
+      // RACE! First one to finish wins
+      const result = await Promise.race([executionPromise, timeoutPromise]) as { stdout?: string, stderr?: string, error?: string }
+
+      // Always terminate worker immediately after race finishes to free memory immediately
+      worker.terminate()
+
+      // 6. Handle Result
+      if (result.error) {
+        setOutput(`❌ ERROR:\n${result.error}`)
         setHasError(true)
         setShowBustEffect(true)
         setTimeout(() => setShowBustEffect(false), 500)
@@ -590,14 +704,19 @@ export default function GamePage() {
         const stdout = result.stdout || ''
 
         let displayOutput = `> OUTPUT:\n${stdout}${stderr}`
-        displayOutput += "\n\n⚠️ Execution Complete. Please show this output to the Dealer/Pit Boss to verify your answer."
+
+        if (isSubmit) {
+          displayOutput += "\n\n⚠️ Submission Complete. Please show this output to the Dealer/Pit Boss to verify your answer."
+        } else {
+          displayOutput += "\n\n✅ Run Complete. Check your output."
+        }
 
         setOutput(displayOutput)
         setHasError(false)
       }
 
     } catch (err: any) {
-      setOutput(`❌ SYSTEM ERROR:\n${err.message || 'Sandbox server unreachable. Is it running?'}`)
+      setOutput(`❌ SYSTEM ERROR:\n${err.message || 'Worker Failed'}`)
       setHasError(true)
       setShowBustEffect(true)
       setTimeout(() => setShowBustEffect(false), 500)
@@ -615,9 +734,9 @@ export default function GamePage() {
     return (
       <div className={`min-h-screen bg-casino-void text-white p-4 flex flex-col items-center ${isWarning ? 'animate-bust-shake' : ''}`}>
 
-        {/* EVENT OVERLAYS (DISABLED IN TEST MODE) */}
+        {/* EVENT OVERLAYS */}
         <AnimatePresence>
-          {false && (
+          {(isPaused || tableStatus === 'PAUSED') && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -625,8 +744,11 @@ export default function GamePage() {
               className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-md flex flex-col items-center justify-center pointer-events-auto"
             >
               <h1 className="text-6xl font-pixel text-red-500 mb-4 animate-bounce neon-text-red">
-                TABLE PAUSED
+                {tableStatus === 'PAUSED' ? 'TABLE PAUSED' : 'EVENT PAUSED'}
               </h1>
+              <p className="text-xl text-gray-300 font-mono text-center max-w-lg">
+                {tableStatus === 'PAUSED' ? 'The Pit Boss has temporarily halted this specific table.' : 'The Pit Boss has halted all play. Please wait for announcements.'}
+              </p>
             </motion.div>
           )}
         </AnimatePresence>
@@ -676,6 +798,19 @@ export default function GamePage() {
                   <p className="text-xl text-gray-300 font-mono mt-4">
                     The Pit Boss has validated your script! Please claim your chips from the Vault.
                   </p>
+                  
+                  <div className="bg-black/50 p-6 rounded-2xl border-2 border-retro-brass shadow-inner my-6">
+                    <p className="text-gray-400 font-mono text-sm mb-2 uppercase tracking-widest">Expected Payout</p>
+                    <p className="text-4xl font-hud text-neon-green">
+                      ${Math.floor(difficulty === 'HIGH' ? 400 : (150 * (wheelMultiplier > 0 ? wheelMultiplier : 1)))}
+                    </p>
+                    {difficulty === 'STANDARD' && wheelMultiplier > 0 && wheelMultiplier !== 1 && (
+                      <p className="text-retro-gold font-pixel text-[10px] mt-3 uppercase tracking-widest animate-pulse">
+                        WHEEL BONUS APPLIED ({wheelMultiplier}x)
+                      </p>
+                    )}
+                  </div>
+
                   <p className="text-sm text-gray-500 font-mono italic">
                     Returning to map in 10 seconds...
                   </p>
@@ -736,168 +871,189 @@ export default function GamePage() {
         </div>
 
         {/* ============ MAIN GAME AREA ============ */}
-        <div className="flex w-full max-w-6xl gap-4 h-[75vh]">
-          {/* LEFT PANEL — Challenge + Output */}
-          <div className="w-1/3 flex flex-col gap-4 relative overflow-hidden rounded-xl">
-            {/* LOCKED OVERLAY */}
-            <AnimatePresence>
-              {!isUnlockedLocally && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="absolute inset-0 bg-black/95 z-[100] flex flex-col items-center justify-center p-6 border-2 border-dashed border-gray-600 rounded-xl backdrop-blur-md pointer-events-auto"
-                >
-                  <span className="text-4xl mb-4">🔒</span>
-                  <h2 className="text-xl font-pixel text-yellow-500 text-center animate-pulse tracking-widest leading-loose neon-text-gold">TABLE LOCKED</h2>
-                  <p className="text-gray-400 font-mono text-center text-xs px-4 mt-2">Waiting for Pit Boss...</p>
-                </motion.div>
-              )}
-            </AnimatePresence>
+        <div className="flex w-full max-w-6xl h-[75vh] relative">
 
-            {/* CHALLENGE PANEL */}
-            <div className="bg-casino-surface rounded-xl p-6 border border-white/10 flex-grow overflow-y-auto shadow-lg flex flex-col gap-4 noise-overlay">
-              <div className="relative z-10">
-                <h2 className="text-lg font-bold mb-4 text-retro-gold neon-text-gold">The Challenge</h2>
-                <p className="text-gray-300 font-sans leading-relaxed text-sm whitespace-pre-wrap">
-                  {dynamicConfig ? dynamicConfig.description : (gameId === 'roulette' ? "Predict the output." : "Write a Python script to solve the problem.")}
-                </p>
-                {gameId === 'roulette' && (
-                  <div className="bg-black p-4 mt-4 rounded-lg border border-gray-600 font-mono text-xs whitespace-pre-wrap crt-screen">
-                    {dynamicConfig ? dynamicConfig.starter : "x = 3\ny = 5\nfor i in range(1, 4):..."}
+              {/* LEFT PANEL — Challenge + Output */}
+              <div className="w-1/3 flex flex-col gap-4 relative overflow-hidden rounded-xl">
+                {/* LOCKED OVERLAY */}
+                <AnimatePresence>
+                  {!isUnlockedLocally && (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="absolute inset-0 bg-black/95 z-[100] flex flex-col items-center justify-center p-6 border-2 border-dashed border-gray-600 rounded-xl backdrop-blur-md pointer-events-auto"
+                    >
+                      <span className="text-4xl mb-4">🔒</span>
+                      <h2 className="text-xl font-pixel text-yellow-500 text-center animate-pulse tracking-widest leading-loose neon-text-gold">TABLE LOCKED</h2>
+                      <p className="text-gray-400 font-mono text-center text-xs px-4 mt-2">Waiting for Pit Boss...</p>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* CHALLENGE PANEL */}
+                <div className="bg-casino-surface rounded-xl p-6 border border-white/10 flex-grow overflow-y-auto shadow-lg flex flex-col gap-4 noise-overlay">
+                  <div className="relative z-10">
+                    <h2 className="text-lg font-bold mb-4 text-retro-gold neon-text-gold">The Challenge</h2>
+                    <p className={`font-sans leading-relaxed text-sm whitespace-pre-wrap ${gameId === 'roulette' ? 'text-green-400' : 'text-gray-300'}`}>
+                      {dynamicConfig ? dynamicConfig.description : (gameId === 'roulette' ? "Predict the output." : "Write a Python script to solve the problem.")}
+                    </p>
+                    {gameId === 'roulette' && (
+                      <div className="bg-black p-4 mt-4 rounded-lg border border-gray-600 font-mono text-xs whitespace-pre-wrap crt-screen text-green-400">
+                        {dynamicConfig ? dynamicConfig.starter : "x = 3\ny = 5\nfor i in range(1, 4):..."}
+                      </div>
+                    )}
                   </div>
-                )}
+
+                  {/* TEST CASES VISUALIZER */}
+                  {dynamicConfig?.test_cases && dynamicConfig.test_cases.length > 0 && gameId !== 'roulette' && (
+                    <div className="mt-4 border-t border-white/10 pt-4 relative z-10">
+                      <h3 className="text-sm font-bold text-gray-400 mb-3 uppercase tracking-wider font-pixel text-[10px]">Test Cases</h3>
+                      <div className="space-y-3">
+                        {dynamicConfig.test_cases.map((tc: any, i: number) => (
+                          <div key={i} className="bg-black/50 border border-gray-700 rounded-lg p-3 font-mono text-[10px] md:text-xs">
+                            {tc.input && (
+                              <div className="mb-2">
+                                <span className="text-blue-400 font-bold block mb-1">Input:</span>
+                                <div className="text-gray-300 whitespace-pre-wrap bg-black/40 p-2 rounded border border-gray-800">{tc.input}</div>
+                              </div>
+                            )}
+                            <div>
+                              <span className="text-green-400 font-bold block mb-1">Expected:</span>
+                              <div className="text-gray-300 whitespace-pre-wrap bg-black/40 p-2 rounded border border-gray-800">{tc.expected}</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* TERMINAL OUTPUT PANEL */}
+                <div className={`bg-black rounded-xl p-4 border h-1/3 overflow-y-auto font-mono text-xs shadow-inner relative
+                  ${showBustEffect ? 'animate-bust-shake border-neon-red/50' : 'border-gray-700'}
+                  ${hasError ? 'border-neon-red/30' : ''}
+                `}>
+                  <div className="text-gray-500 mb-2 uppercase font-bold font-pixel text-[10px] tracking-wider">Terminal Output:</div>
+                  <pre className={`whitespace-pre-wrap ${output?.startsWith('❌') ? 'text-neon-red' : 'text-neon-green'}`}>
+                    {output}
+                  </pre>
+                  {/* BUST watermark on error */}
+                  {showBustEffect && <div className="bust-watermark font-pixel">BUST</div>}
+                </div>
               </div>
 
-              {/* TEST CASES VISUALIZER */}
-              {dynamicConfig?.test_cases && dynamicConfig.test_cases.length > 0 && gameId !== 'roulette' && (
-                <div className="mt-4 border-t border-white/10 pt-4 relative z-10">
-                  <h3 className="text-sm font-bold text-gray-400 mb-3 uppercase tracking-wider font-pixel text-[10px]">Test Cases</h3>
-                  <div className="space-y-3">
-                    {dynamicConfig.test_cases.map((tc: any, i: number) => (
-                      <div key={i} className="bg-black/50 border border-gray-700 rounded-lg p-3 font-mono text-[10px] md:text-xs">
-                        {tc.input && (
-                          <div className="mb-2">
-                            <span className="text-blue-400 font-bold block mb-1">Input:</span>
-                            <div className="text-gray-300 whitespace-pre-wrap bg-black/40 p-2 rounded border border-gray-800">{tc.input}</div>
-                          </div>
-                        )}
-                        <div>
-                          <span className="text-green-400 font-bold block mb-1">Expected:</span>
-                          <div className="text-gray-300 whitespace-pre-wrap bg-black/40 p-2 rounded border border-gray-800">{tc.expected}</div>
-                        </div>
+              {/* RIGHT PANEL (EDITOR) */}
+              <div className={`w-2/3 rounded-xl flex flex-col relative overflow-hidden shadow-2xl
+                ${showBustEffect ? 'animate-bust-shake' : ''}`}
+              >
+                {/* PIN LOCK OVERLAY */}
+                <AnimatePresence>
+                  {!isUnlockedLocally && (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="absolute inset-0 bg-black/90 z-[100] flex flex-col items-center justify-center p-6 border-2 border-dashed border-yellow-700 rounded-xl backdrop-blur-xl pointer-events-auto"
+                    >
+                      <h2 className="text-3xl font-pixel text-yellow-500 text-center uppercase tracking-[0.2em] leading-loose mb-2 neon-text-gold">ENTER PIN TO UNLOCK</h2>
+                      <p className="font-mono text-gray-400 mb-6 text-center">Listen for the Pit Boss to announce the start PIN.</p>
+                      <div className="flex flex-col gap-4 w-full max-w-sm">
+                        <input
+                          type="text"
+                          maxLength={10}
+                          placeholder="****"
+                          className="w-full bg-black border-2 border-gray-700 focus:border-yellow-500 text-yellow-400 text-4xl p-6 tracking-[0.5em] text-center rounded-xl outline-none font-hud shadow-inner placeholder:text-gray-700 placeholder:text-2xl placeholder:tracking-widest"
+                          value={enteredPin}
+                          onChange={(e) => setEnteredPin(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              if (enteredPin.trim() === actualPin?.trim()) {
+                                setIsUnlockedLocally(true)
+                                localStorage.setItem(`cs_unlocked_${gameId}`, actualPin!)
+                              } else {
+                                alert(`Incorrect PIN.\nExpected: [${actualPin}]\nYou Typed: [${enteredPin}]`)
+                                setEnteredPin('')
+                              }
+                            }
+                          }}
+                        />
+                        <button
+                          onClick={() => {
+                            if (enteredPin.trim() === actualPin?.trim()) {
+                              setIsUnlockedLocally(true)
+                              localStorage.setItem(`cs_unlocked_${gameId}`, actualPin!)
+                            } else {
+                              alert(`Incorrect PIN.\nExpected: [${actualPin}]\nYou Typed: [${enteredPin}]`)
+                              setEnteredPin('')
+                            }
+                          }}
+                          className="w-full bg-yellow-600 hover:bg-yellow-500 text-black font-bold text-xl py-4 rounded-xl active:scale-95 transition-all shadow-neon-gold font-pixel">
+                          UNLOCK IDE
+                        </button>
+                        <p className="text-gray-500 text-xs text-center font-mono mt-2 flex justify-center gap-2">
+                          DEBUG: <span className="text-red-500">{actualPin || "WAITING FOR DATABASE..."}</span>
+                        </p>
                       </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
-            {/* TERMINAL OUTPUT PANEL */}
-            <div className={`bg-black rounded-xl p-4 border h-1/3 overflow-y-auto font-mono text-xs shadow-inner relative
-              ${showBustEffect ? 'animate-bust-shake border-neon-red/50' : 'border-gray-700'}
-              ${hasError ? 'border-neon-red/30' : ''}
-            `}>
-              <div className="text-gray-500 mb-2 uppercase font-bold font-pixel text-[10px] tracking-wider">Terminal Output:</div>
-              <pre className={`whitespace-pre-wrap ${output.startsWith('❌') ? 'text-neon-red' : 'text-neon-green'}`}>
-                {output}
-              </pre>
-              {/* BUST watermark on error */}
-              {showBustEffect && <div className="bust-watermark font-pixel">BUST</div>}
-            </div>
-          </div>
-
-          {/* RIGHT PANEL (EDITOR) */}
-          <div className={`w-2/3 rounded-xl flex flex-col relative overflow-hidden shadow-2xl
-            ${showBustEffect ? 'animate-bust-shake' : ''}`}
-          >
-            {/* PIN LOCK OVERLAY */}
-            <AnimatePresence>
-              {!isUnlockedLocally && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="absolute inset-0 bg-black/90 z-[100] flex flex-col items-center justify-center p-6 border-2 border-dashed border-yellow-700 rounded-xl backdrop-blur-xl pointer-events-auto"
-                >
-                  <h2 className="text-3xl font-pixel text-yellow-500 text-center uppercase tracking-[0.2em] leading-loose mb-2 neon-text-gold">ENTER PIN TO UNLOCK</h2>
-                  <p className="font-mono text-gray-400 mb-6 text-center">Listen for the Pit Boss to announce the start PIN.</p>
-                  <div className="flex flex-col gap-4 w-full max-w-sm">
+                {/* EDITOR OR ROULETTE INPUT OR BACCARAT MCQ */}
+                {gameId === 'roulette' ? (
+                  <div className="flex-grow flex flex-col items-center justify-center p-10 gap-6 relative z-10 bg-black machine-bezel crt-screen">
+                    <h3 className="text-3xl font-pixel text-yellow-500 mb-2 tracking-widest neon-text-gold">SUBMIT OUTPUT</h3>
+                    <p className="text-gray-400 font-mono mb-6 text-center text-sm">Analyze the code challenge on the left and enter the exact output below.</p>
                     <input
                       type="text"
-                      maxLength={10}
-                      placeholder="ENTER PIN"
-                      className="w-full bg-black border-2 border-gray-700 focus:border-yellow-500 text-yellow-400 text-4xl p-6 tracking-[0.5em] text-center rounded-xl outline-none font-hud shadow-inner"
-                      value={enteredPin}
-                      onChange={(e) => setEnteredPin(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          if (enteredPin.trim() === actualPin?.trim()) {
-                            setIsUnlockedLocally(true)
-                            localStorage.setItem(`cs_unlocked_${gameId}`, actualPin!)
-                          } else {
-                            alert(`Incorrect PIN.\nExpected: [${actualPin}]\nYou Typed: [${enteredPin}]`)
-                            setEnteredPin('')
-                          }
-                        }
-                      }}
+                      placeholder="Type exact match..."
+                      className="w-full max-w-md bg-[#000080] border-2 border-blue-900 focus:border-yellow-500 text-white text-3xl p-6 text-center rounded-xl outline-none font-hud transition-colors shadow-inner"
+                      onChange={(e) => setTextInput(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
                     />
-                    <button
-                      onClick={() => {
-                        if (enteredPin.trim() === actualPin?.trim()) {
-                          setIsUnlockedLocally(true)
-                          localStorage.setItem(`cs_unlocked_${gameId}`, actualPin!)
-                        } else {
-                          alert(`Incorrect PIN.\nExpected: [${actualPin}]\nYou Typed: [${enteredPin}]`)
-                          setEnteredPin('')
-                        }
-                      }}
-                      className="w-full bg-yellow-600 hover:bg-yellow-500 text-black font-bold text-xl py-4 rounded-xl active:scale-95 transition-all shadow-neon-gold font-pixel">
-                      UNLOCK IDE
-                    </button>
-                    <p className="text-gray-500 text-xs text-center font-mono mt-2 flex justify-center gap-2">
-                      DEBUG: <span className="text-red-500">{actualPin || "WAITING FOR DATABASE..."}</span>
-                    </p>
                   </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                ) : gameId === 'baccarat' ? (
+                  <div className="flex-grow flex flex-col items-center justify-center p-10 gap-6 relative z-10 bg-black machine-bezel crt-screen">
+                    <h3 className="text-3xl font-pixel text-retro-gold mb-2 tracking-widest neon-text-gold">SELECT OPTION</h3>
+                    <div className="w-full max-w-lg space-y-4">
+                      {(dynamicConfig?.options || ['Option A', 'Option B', 'Option C', 'Option D']).map((opt: string, i: number) => (
+                        <button
+                          key={i}
+                          onClick={() => setSelectedMcqOption(opt)}
+                          className={`w-full text-left p-4 rounded-xl border-2 font-mono transition-all
+                            ${selectedMcqOption === opt 
+                              ? 'bg-retro-gold/20 border-retro-gold text-retro-gold shadow-neon-gold' 
+                              : 'bg-black border-gray-700 text-gray-300 hover:border-gray-500'}`}
+                        >
+                          <span className="font-bold mr-4">{String.fromCharCode(65 + i)}.</span>
+                          {opt}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex-grow relative z-10">
+                    <CodeEditor starterCode={code} onChange={(newCode) => setCode(newCode)} isRunning={isRunning} hasError={hasError} language={language} onLanguageChange={setLanguage} onRun={() => handleSubmit(false)} />
+                  </div>
+                )}
 
-            {/* EDITOR OR ROULETTE INPUT */}
-            {gameId === 'roulette' ? (
-              <div className="flex-grow flex flex-col items-center justify-center p-10 gap-6 relative z-10 bg-casino-void machine-bezel crt-screen">
-                <h3 className="text-3xl font-pixel text-yellow-500 mb-2 tracking-widest neon-text-gold">SUBMIT OUTPUT</h3>
-                <p className="text-gray-400 font-mono mb-6 text-center text-sm">Analyze the code challenge on the left and enter the exact output below.</p>
-                <input
-                  type="text"
-                  placeholder="Type exact match..."
-                  className="w-full max-w-md bg-black border-2 border-gray-700 focus:border-yellow-500 text-yellow-400 text-3xl p-6 text-center rounded-xl outline-none font-hud transition-colors shadow-inner"
-                  onChange={(e) => setTextInput(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
-                />
+                {/* BOTTOM ACTION BAR */}
+                <div className="h-20 bg-casino-panel border-t border-white/10 flex items-center justify-between px-6 gap-4 z-20">
+                  <button onClick={() => {
+                    if (window.confirm("Are you sure you want to Give Up? You will instantly LOSE your bet and return to the map.")) {
+                      router.back()
+                    }
+                  }} className="px-6 py-2 border border-red-900/50 text-red-500 hover:bg-red-900/20 font-bold rounded-lg uppercase text-sm transition-all hover:shadow-neon-red font-pixel text-[10px] tracking-wider">Give Up</button>
+                  <button onClick={handleSubmit} disabled={isRunning} className={`px-8 py-3 font-bold rounded-lg uppercase text-lg shadow-lg transition-all font-pixel
+                    ${isRunning
+                      ? 'bg-gray-600 cursor-not-allowed opacity-50'
+                      : 'bg-green-700 text-white hover:bg-green-500 hover:scale-105 shadow-[0_0_15px_rgba(34,197,94,0.4)] hover:shadow-[0_0_25px_rgba(34,197,94,0.8)]'
+                    }`}>
+                    {isRunning ? 'RUNNING...' : 'SUBMIT ➤'}
+                  </button>
+                </div>
               </div>
-            ) : (
-              <div className="flex-grow relative z-10">
-                <CodeEditor starterCode={code} onChange={(newCode) => setCode(newCode)} isRunning={isRunning} hasError={hasError} language={selectedLanguage} onChangeLanguage={setSelectedLanguage} />
-              </div>
-            )}
 
-            {/* BOTTOM ACTION BAR */}
-            <div className="h-20 bg-casino-panel border-t border-white/10 flex items-center justify-between px-6 gap-4 z-20">
-              <button onClick={() => {
-                if (window.confirm("Are you sure you want to Give Up? You will instantly LOSE your bet and return to the map.")) {
-                  router.back()
-                }
-              }} className="px-6 py-2 border border-red-900/50 text-red-500 hover:bg-red-900/20 font-bold rounded-lg uppercase text-sm transition-all hover:shadow-neon-red font-pixel text-[10px] tracking-wider">Give Up</button>
-              <button onClick={handleSubmit} disabled={isRunning} className={`px-8 py-3 font-bold rounded-lg uppercase text-lg shadow-lg transition-all font-pixel
-                ${isRunning
-                  ? 'bg-gray-600 cursor-not-allowed opacity-50'
-                  : 'bg-neon-green text-black hover:bg-green-400 hover:scale-105 shadow-neon-green'
-                }`}>
-                {isRunning ? 'RUNNING...' : 'SUBMIT ➤'}
-              </button>
-            </div>
-          </div>
         </div>
       </div>
     )
@@ -909,73 +1065,154 @@ export default function GamePage() {
   // ============================================================
   if (phase === 'BETTING') {
     return (
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="min-h-screen flex flex-col items-center justify-center bg-casino-void p-4 relative overflow-hidden crt-screen"
-      >
-        {/* Dark atmospheric background */}
-        <div className="absolute inset-0 bg-gradient-radial from-transparent via-transparent to-black/60 pointer-events-none" />
-        <div className={`absolute inset-0 opacity-5 ${config.bg}`} />
-
-        <motion.div
-          initial={{ y: 30, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.2 }}
-          className="z-10 text-center space-y-8 max-w-4xl w-full"
-        >
-          <h1 className={`text-4xl md:text-5xl font-pixel mb-2 ${config.color} ${config.neonClass} crt-text`}>PLACE YOUR BET</h1>
-          <p className="text-gray-500 font-mono text-sm">Choose your risk. Choose your destiny.</p>
-
-          {isBetting ? (
-            <div className="mt-12 text-2xl font-mono text-retro-gold animate-pulse neon-text-gold">PROCESSING BET...</div>
-          ) : gameId === 'final' ? (
-            <div className="mt-12 text-2xl font-mono text-retro-gold animate-pulse neon-text-gold">LOADING FINAL ROUND...</div>
-          ) : (
+      <>
+        {/* ADMIN WAIT MODAL */}
+        <AnimatePresence>
+          {showAdminWaitModal && (
             <motion.div
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.4 }}
-              className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-12"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[300] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 pointer-events-auto"
             >
-              {/* STANDARD BET CARD */}
               <motion.div
-                whileHover={{ scale: 1.03, y: -4 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => handleBet('STANDARD')}
-                className="group cursor-pointer bg-casino-panel border-[3px] border-green-800/60 hover:border-neon-green/80 p-8 rounded-2xl transition-all relative overflow-hidden"
+                initial={{ scale: 0.9, y: 20 }}
+                animate={{ scale: 1, y: 0 }}
+                exit={{ scale: 0.9, y: 20 }}
+                className="bg-casino-panel-light border-2 border-red-500/50 max-w-md w-full rounded-2xl shadow-neon-red p-8 text-center"
               >
-                <div className="absolute inset-0 bg-gradient-to-b from-green-900/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                <div className="relative z-10">
-                  <h3 className="text-2xl text-white font-bold mb-2 font-pixel">STANDARD</h3>
-                  <div className="text-5xl font-hud font-bold text-neon-green mb-4 neon-text-green">$100</div>
-                  <p className="text-gray-400 text-sm font-mono">{gameId === 'roulette' ? 'Multiple Choice' : 'Normal Difficulty'}</p>
-                  <div className="mt-4 text-[10px] font-pixel text-green-600/60 uppercase tracking-widest">SAFE BET</div>
-                </div>
-              </motion.div>
-
-              {/* HIGH ROLLER CARD */}
-              <motion.div
-                whileHover={{ scale: 1.03, y: -4 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => handleBet('HIGH')}
-                className="group cursor-pointer bg-[#1a0a0a] border-[3px] border-red-900/60 hover:border-neon-red/80 p-8 rounded-2xl transition-all relative overflow-hidden"
-              >
-                <div className="absolute inset-0 bg-gradient-to-b from-red-900/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                {/* LEGENDARY tag */}
-                <div className="absolute -top-0 right-0 bg-neon-red text-[10px] px-3 py-1.5 text-white font-bold font-pixel rounded-bl-xl tracking-widest shadow-neon-red animate-neon-pulse">🔥 LEGENDARY</div>
-                <div className="relative z-10">
-                  <h3 className="text-2xl text-white font-bold mb-2 font-pixel">HIGH ROLLER</h3>
-                  <div className="text-5xl font-hud font-bold text-neon-red mb-4 neon-text-red">$300</div>
-                  <p className="text-gray-400 text-sm font-mono">{gameId === 'roulette' ? 'Exact Match Input' : 'Extreme Difficulty'}</p>
-                  <div className="mt-4 text-[10px] font-pixel text-red-600/60 uppercase tracking-widest">HIGH RISK • HIGH REWARD</div>
-                </div>
+                <div className="text-5xl mb-4">🛑</div>
+                <h2 className="text-2xl font-pixel text-red-400 mb-4 tracking-widest uppercase">Table Not Active</h2>
+                <p className="font-mono text-gray-300 text-sm mb-8">
+                  Please wait for the Pit Boss to officially open this table before entering.
+                </p>
+                <button 
+                  onClick={() => setShowAdminWaitModal(false)}
+                  className="w-full py-3 bg-red-900/50 hover:bg-red-800 text-white font-bold font-pixel text-xs rounded-xl border border-red-500 transition-colors"
+                >
+                  ACKNOWLEDGE
+                </button>
               </motion.div>
             </motion.div>
           )}
-          <button onClick={() => router.back()} className="mt-8 text-gray-600 hover:text-white underline text-sm disabled:opacity-0 font-mono transition-colors" disabled={isBetting}>← BACK TO MAP</button>
+        </AnimatePresence>
+
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="fixed inset-0 z-40 flex flex-col items-center justify-center bg-black/80 backdrop-blur-md p-4"
+        >
+          <motion.div
+            initial={{ scale: 0.9, y: 20 }}
+            animate={{ scale: 1, y: 0 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+            className="z-10 text-center space-y-4 max-w-4xl w-full max-h-[95vh] overflow-y-auto bg-[#5C4520] border-[3px] border-retro-brass/40 p-6 md:p-8 rounded-3xl shadow-2xl custom-scrollbar"
+          >
+            <h1 className={`text-3xl md:text-5xl font-pixel mb-1 ${config.color} ${config.neonClass} crt-text`}>PLACE YOUR BET</h1>
+            <p className="text-retro-cream/70 font-mono text-xs md:text-sm">Choose your risk. Choose your destiny.</p>
+
+            {isBetting ? (
+              <div className="mt-10 text-2xl font-mono text-retro-gold animate-pulse neon-text-gold">PROCESSING BET...</div>
+            ) : gameId === 'final' ? (
+              <div className="mt-10 text-2xl font-mono text-retro-gold animate-pulse neon-text-gold">LOADING FINAL ROUND...</div>
+            ) : (
+              <div className="flex flex-col items-center">
+                <motion.div
+                  initial={{ y: 20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.4 }}
+                  className={`grid grid-cols-1 ${selectedBet === 'STANDARD' ? 'md:grid-cols-2' : 'md:grid-cols-2'} gap-6 md:gap-8 mt-8 w-full`}
+                >
+                  {/* STANDARD BET CARD */}
+                  <motion.div
+                    whileHover={{ scale: selectedBet === 'STANDARD' ? 1 : 1.03, y: selectedBet === 'STANDARD' ? 0 : -4 }}
+                    whileTap={{ scale: selectedBet === 'STANDARD' ? 1 : 0.98 }}
+                    onClick={() => setSelectedBet('STANDARD')}
+                    className={`group cursor-pointer border-[3px] p-6 md:p-8 rounded-2xl transition-all relative overflow-hidden flex flex-col justify-center h-full min-h-[300px]
+                      ${selectedBet === 'STANDARD' ? 'bg-[#1e4d2b] border-white shadow-[0_0_30px_rgba(34,197,94,0.3)]' : 'bg-[#143a21] border-green-500/60 hover:border-green-400/80'}`}
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-b from-green-900/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <div className="relative z-10">
+                      <h3 className="text-2xl text-white font-bold mb-1 font-pixel">STANDARD</h3>
+                      <div className="text-4xl font-hud font-bold text-neon-green mb-2 neon-text-green">$100</div>
+                      <div className="text-base font-hud font-bold text-green-300 mb-3">Returns $150</div>
+                      <p className="text-gray-400 text-sm font-mono">{gameId === 'roulette' ? 'Multiple Choice' : 'Normal Difficulty'}</p>
+                      <div className="mt-3 text-[9px] font-pixel text-green-600/60 uppercase tracking-widest">SAFE BET</div>
+                    </div>
+                  </motion.div>
+
+                  {/* HIGH ROLLER CARD OR SPIN WHEEL */}
+                  {selectedBet === 'STANDARD' ? (
+                    <motion.div
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      className="h-full"
+                    >
+                      <SpinWheel 
+                        teamId={teamId || ''} 
+                        gameId={gameId}
+                        onSpinStart={() => setIsSpinningWheel(true)}
+                        onSpinComplete={(multiplier, newBalance) => {
+                          setIsSpinningWheel(false)
+                          setIsBetting(true)
+                          setWheelMultiplier(multiplier)
+                          setWalletBalance(newBalance)
+                          setDifficulty('STANDARD')
+                          localStorage.setItem(`cs_diff_${gameId}`, 'STANDARD')
+                          setTimeout(() => {
+                            setPhase('WAITING')
+                            setIsBetting(false)
+                          }, 2000)
+                        }}
+                        disabled={isBetting || isSpinningWheel} 
+                      />
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      whileHover={{ scale: 1.03, y: -4 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => setSelectedBet('HIGH')}
+                      className={`group cursor-pointer border-[3px] p-6 md:p-8 rounded-2xl transition-all relative overflow-hidden flex flex-col justify-center h-full min-h-[300px]
+                        ${selectedBet === 'HIGH' ? 'bg-[#2a0a0a] border-neon-red shadow-neon-red' : 'bg-[#1a0a0a] border-red-900/60 hover:border-neon-red/80'}`}
+                    >
+                      <div className="absolute inset-0 bg-gradient-to-b from-red-900/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                      <div className="relative z-10">
+                        <h3 className="text-2xl text-white font-bold mb-1 font-pixel">HIGH ROLLER</h3>
+                        <div className="text-4xl font-hud font-bold text-neon-red mb-2 neon-text-red">$200</div>
+                        <div className="text-base font-hud font-bold text-red-300 mb-3">Returns $400</div>
+                        <p className="text-gray-400 text-sm font-mono">{gameId === 'roulette' ? 'Exact Match Input' : 'Extreme Difficulty'}</p>
+                        <div className="mt-3 text-[9px] font-pixel text-red-600/60 uppercase tracking-widest">HIGH RISK • HIGH REWARD</div>
+                      </div>
+                    </motion.div>
+                  )}
+                </motion.div>
+                
+                <div className="mt-4 w-full flex flex-col items-center gap-3">
+                  {selectedBet === 'STANDARD' && wheelMultiplier === 0 && (
+                    <button onClick={() => setSelectedBet(null)} className="text-gray-400 hover:text-white text-[10px] font-pixel tracking-widest uppercase mb-1 transition-colors">
+                      ← CANCEL AND CHANGE BET TYPE
+                    </button>
+                  )}
+                  <button 
+                    onClick={handleBet}
+                    disabled={!selectedBet || isBetting || isSpinningWheel}
+                    className={`px-6 py-3 font-bold rounded-xl uppercase text-sm shadow-lg transition-all font-pixel w-full max-w-md
+                      ${selectedBet && !isBetting && !isSpinningWheel
+                        ? 'bg-retro-gold text-black hover:bg-yellow-400 hover:scale-105 shadow-neon-gold cursor-pointer' 
+                        : 'bg-gray-800 text-gray-500 cursor-not-allowed border border-gray-700'
+                      }`}
+                  >
+                    {isSpinningWheel ? 'SPINNING WHEEL...' : isBetting ? 'ENTERING CASINO...' : 'CONFIRM CHOICES & ENTER'}
+                  </button>
+                  <button onClick={() => router.back()} className="text-gray-500 hover:text-white text-[9px] disabled:opacity-0 font-pixel tracking-widest uppercase transition-colors" disabled={isBetting}>
+                    ← BACK TO MAP
+                  </button>
+                </div>
+              </div>
+            )}
+          </motion.div>
         </motion.div>
-      </motion.div>
+      </>
     )
   }
 
@@ -1015,7 +1252,7 @@ export default function GamePage() {
               if (gameId === 'final') {
                 setDifficulty('STANDARD')
                 localStorage.setItem(`cs_diff_${gameId}`, 'STANDARD')
-                setPhase('GAME')
+                setPhase('WAITING')
               } else {
                 setPhase('BETTING')
               }

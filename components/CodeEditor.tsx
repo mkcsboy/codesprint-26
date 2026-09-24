@@ -19,10 +19,11 @@ interface CodeEditorProps {
   isRunning?: boolean
   hasError?: boolean
   language?: string
-  onChangeLanguage?: (lang: string) => void
+  onLanguageChange?: (lang: string) => void
+  onRun?: () => void
 }
 
-export default function CodeEditor({ starterCode, onChange, readOnly = false, isRunning = false, hasError = false, language = 'python', onChangeLanguage }: CodeEditorProps) {
+export default function CodeEditor({ starterCode, onChange, readOnly = false, isRunning = false, hasError = false, language = 'python', onLanguageChange, onRun }: CodeEditorProps) {
   // FIX: Added <any> so it can hold the Editor object
   const editorRef = useRef<any>(null)
 
@@ -68,7 +69,7 @@ export default function CodeEditor({ starterCode, onChange, readOnly = false, is
         <div className="flex items-center gap-2">
           <select
             value={language}
-            onChange={(e) => onChangeLanguage && onChangeLanguage(e.target.value)}
+            onChange={(e) => onLanguageChange && onLanguageChange(e.target.value)}
             className="bg-black/60 border border-white/20 text-yellow-400 text-[11px] font-pixel px-3 py-1.5 rounded cursor-pointer outline-none hover:border-yellow-500/50 transition-colors appearance-none"
             style={{ backgroundImage: 'none' }}
           >
@@ -85,10 +86,21 @@ export default function CodeEditor({ starterCode, onChange, readOnly = false, is
           </div>
         </div>
 
-        {/* Decorative screws */}
+        {/* RUN Button replacing screws */}
         <div className="flex gap-4">
-          <div className="w-2.5 h-2.5 rounded-full bg-gradient-to-br from-gray-500 to-gray-700 border border-gray-600 shadow-inner" />
-          <div className="w-2.5 h-2.5 rounded-full bg-gradient-to-br from-gray-500 to-gray-700 border border-gray-600 shadow-inner" />
+          {onRun && (
+            <button 
+              onClick={onRun}
+              disabled={isRunning}
+              className={`px-4 py-1 font-pixel text-[10px] rounded shadow-md border ${
+                isRunning 
+                  ? 'bg-gray-600 text-gray-400 border-gray-500 cursor-not-allowed'
+                  : 'bg-green-700 text-white border-green-500 hover:bg-green-500 hover:shadow-[0_0_10px_rgba(34,197,94,0.5)] active:scale-95 transition-all'
+              }`}
+            >
+              {isRunning ? 'RUNNING...' : '▶ RUN'}
+            </button>
+          )}
         </div>
       </div>
 

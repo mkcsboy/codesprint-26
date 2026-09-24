@@ -14,6 +14,9 @@ const LOBBY_H = 20
 const WING_W = 34
 const WING_H = 34
 
+const VIP_W = 28
+const VIP_H = 28
+
 export type Scene = 'LOBBY' | 'WING_1' | 'WING_2' | 'VIP_ROOM'
 
 // --- ASSETS ---
@@ -30,8 +33,8 @@ const TABLE_COLOR: Record<string, string> = {
 }
 
 // Helper to generate room walls with doors
-function generatePerimeter(doorLeft: boolean, doorRight: boolean, doorTop: boolean, doorBottom: boolean, w: number, h: number): { x: number, y: number }[] {
-  const walls: { x: number, y: number }[] = []
+function generatePerimeter(doorLeft: boolean, doorRight: boolean, doorTop: boolean, doorBottom: boolean, w: number, h: number): { x: number, y: number, className?: string }[] {
+  const walls: { x: number, y: number, className?: string }[] = []
   for (let x = 0; x < w; x++) {
     for (let y = 0; y < h; y++) {
       const isTop = y === 0
@@ -55,21 +58,28 @@ function generatePerimeter(doorLeft: boolean, doorRight: boolean, doorTop: boole
 }
 
 // Generate walls for cabins
-function generateCabins(tables: any[]): { x: number, y: number }[] {
-  const walls: { x: number, y: number }[] = []
+function generateCabins(tables: any[]): { x: number, y: number, className?: string }[] {
+  const walls: { x: number, y: number, className?: string }[] = []
   for (const t of tables) {
     const cx = t.x - 3
     const cy = t.y - 3
     for (let x = cx; x <= cx + 8; x++) {
       for (let y = cy; y <= cy + 8; y++) {
-        const isTop = y === cy
-        const isBottom = y === cy + 8
-        const isLeft = x === cx
-        const isRight = x === cx + 8
-        if (!isTop && !isBottom && !isLeft && !isRight) continue
+        let isWall = false
+        
+        // Top and Bottom flat edges
+        if ((y === cy || y === cy + 8) && x >= cx + 2 && x <= cx + 6) isWall = true
+        
+        // Left and Right flat edges
+        if ((x === cx || x === cx + 8) && y >= cy + 2 && y <= cy + 6) isWall = true
+        
+        // Diagonals (Zigzag)
+        if ((x === cx + 1 || x === cx + 7) && (y === cy + 1 || y === cy + 7)) isWall = true
+        
+        if (!isWall) continue
         
         // Doorway on the bottom wall
-        if (isBottom && x >= t.x && x <= t.x + 2) continue
+        if (y === cy + 8 && x >= t.x && x <= t.x + 2) continue
 
         walls.push({ x, y })
       }
@@ -95,19 +105,19 @@ const WING_2_TABLES = [
 ]
 
 const LOBBY_WALLS = generatePerimeter(true, true, true, true, LOBBY_W, LOBBY_H)
-const WING_1_WALLS = [...generatePerimeter(false, false, false, true, WING_W, WING_H), ...generateCabins(WING_1_TABLES)]
-const WING_2_WALLS = [...generatePerimeter(false, false, false, true, WING_W, WING_H), ...generateCabins(WING_2_TABLES)]
-const VIP_WALLS = generatePerimeter(false, false, false, true, WING_W, WING_H)
+const WING_1_WALLS = [...generatePerimeter(false, true, false, false, WING_W, WING_H), ...generateCabins(WING_1_TABLES)]
+const WING_2_WALLS = [...generatePerimeter(true, false, false, false, WING_W, WING_H), ...generateCabins(WING_2_TABLES)]
+const VIP_WALLS = generatePerimeter(false, false, false, true, VIP_W, VIP_H)
 
 const LOBBY_ROOM = [{ id: 'lobby', x: 1, y: 1, w: LOBBY_W-2, h: LOBBY_H-2, floor: 'floor-playing-cards', label: 'THE GRAND LOBBY', wallType: 'wall-walnut' }]
 const WING_1_ROOM = [{ id: 'w1', x: 1, y: 1, w: WING_W-2, h: WING_H-2, floor: 'floor-felt', label: '♦ WING 1', wallType: 'wall-wood' }]
 const WING_2_ROOM = [{ id: 'w2', x: 1, y: 1, w: WING_W-2, h: WING_H-2, floor: 'floor-felt', label: '♣ WING 2', wallType: 'wall-wood' }]
-const VIP_ROOM = [{ id: 'vip', x: 1, y: 1, w: WING_W-2, h: WING_H-2, floor: 'floor-royal', label: '🏆 VIP PENTHOUSE', wallType: 'wall-walnut' }]
+const VIP_ROOM = [{ id: 'vip', x: 1, y: 1, w: VIP_W-2, h: VIP_H-2, floor: 'floor-royal', label: '🏆 VIP PENTHOUSE', wallType: 'wall-walnut' }]
 
 
 
 const VIP_TABLES = [
-  { id: 'FINAL', label: 'FINAL SHOWDOWN', sublabel: 'All In', route: 'final', x: 15, y: 15, chairs: [{ id: 'c1', x: 14, y: 16 }, { id: 'c2', x: 14, y: 17 }, { id: 'c3', x: 15, y: 18 }, { id: 'c4', x: 16, y: 18 }, { id: 'c5', x: 17, y: 18 }, { id: 'c6', x: 18, y: 16 }, { id: 'c7', x: 18, y: 17 }], dealers: [{ x: 16, y: 14 }, { x: 17, y: 14 }] }
+  { id: 'FINAL', label: 'FINAL SHOWDOWN', sublabel: 'All In', route: 'final', x: 12, y: 12, chairs: [{ id: 'c1', x: 11, y: 12 }, { id: 'c2', x: 11, y: 13 }, { id: 'c3', x: 12, y: 14 }, { id: 'c4', x: 13, y: 14 }, { id: 'c5', x: 14, y: 14 }, { id: 'c6', x: 15, y: 12 }, { id: 'c7', x: 15, y: 13 }], dealers: [{ x: 13, y: 11 }, { x: 14, y: 11 }] }
 ]
 
 const LOBBY_DECORATIONS: any[] = []
@@ -133,11 +143,42 @@ type Player = {
 export default function MapClient({ userData }: MapClientProps) {
   const router = useRouter()
   const [CELL, setCELL] = useState(40)
-  const [scene, setScene] = useState<Scene>('LOBBY')
-  const [position, setPosition] = useState({ x: 9, y: 9 })
-  const [direction, setDirection] = useState<'left' | 'right'>('right')
+  const [scene, setScene] = useState<Scene>(() => {
+    if (typeof window !== 'undefined') return (localStorage.getItem('cs_map_scene') as Scene) || 'LOBBY'
+    return 'LOBBY'
+  })
+  const [position, setPosition] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('cs_map_pos')
+      if (saved) {
+        let p = JSON.parse(saved)
+        const scene = localStorage.getItem('cs_map_scene') || 'LOBBY'
+        const w = scene === 'LOBBY' ? LOBBY_W : scene === 'VIP_ROOM' ? VIP_W : WING_W
+        const h = scene === 'LOBBY' ? LOBBY_H : scene === 'VIP_ROOM' ? VIP_H : WING_H
+        if (p.x < 1 || p.x >= w - 1 || p.y < 1 || p.y >= h - 1) {
+          return { x: Math.floor(w/2), y: Math.floor(h/2) }
+        }
+        return p
+      }
+    }
+    return { x: 9, y: 9 }
+  })
+  const [direction, setDirection] = useState<'left' | 'right'>(() => {
+    if (typeof window !== 'undefined') return (localStorage.getItem('cs_map_dir') as 'left'|'right') || 'right'
+    return 'right'
+  })
   const [otherPlayers, setOtherPlayers] = useState<Record<string, Player>>({})
   const [nearTable, setNearTable] = useState<string | null>(null)
+  const [isMounted, setIsMounted] = useState(false)
+
+  useEffect(() => setIsMounted(true), [])
+
+  // Persist map state
+  useEffect(() => {
+    localStorage.setItem('cs_map_scene', scene)
+    localStorage.setItem('cs_map_pos', JSON.stringify(position))
+    localStorage.setItem('cs_map_dir', direction)
+  }, [scene, position, direction])
 
   const [isMoving, setIsMoving] = useState(false)
   // --- ROUND 2 STATE ---
@@ -161,6 +202,7 @@ export default function MapClient({ userData }: MapClientProps) {
   const sceneRef = useRef(scene)
   const posRef = useRef(position)
   const dirRef = useRef(direction)
+  const lastBroadcastId = useRef(0)
   const nearTableRef = useRef(nearTable)
   const inRound2Ref = useRef(inRound2)
   const isRound2OpenRef = useRef(isRound2Open)
@@ -184,7 +226,7 @@ export default function MapClient({ userData }: MapClientProps) {
     const updateSize = () => {
       if (typeof window !== 'undefined') {
         const vw = window.innerWidth
-        const currentGridW = scene === 'LOBBY' ? LOBBY_W : WING_W
+        const currentGridW = scene === 'LOBBY' ? LOBBY_W : scene === 'VIP_ROOM' ? VIP_W : WING_W
         setCELL(vw / currentGridW)
       }
     }
@@ -214,8 +256,8 @@ export default function MapClient({ userData }: MapClientProps) {
 
   // --- COLLISION LOGIC (uses refs for always-fresh state) ---
   const isBlocked = (x: number, y: number) => {
-    const gridW = sceneRef.current === 'LOBBY' ? LOBBY_W : WING_W
-    const gridH = sceneRef.current === 'LOBBY' ? LOBBY_H : WING_H
+    const gridW = sceneRef.current === 'LOBBY' ? LOBBY_W : sceneRef.current === 'VIP_ROOM' ? VIP_W : WING_W
+    const gridH = sceneRef.current === 'LOBBY' ? LOBBY_H : sceneRef.current === 'VIP_ROOM' ? VIP_H : WING_H
 
     if (x < 0 || x >= gridW || y < 0 || y >= gridH) return true
 
@@ -243,7 +285,7 @@ export default function MapClient({ userData }: MapClientProps) {
 
   const handleTeleportToRound2 = async () => {
     setScene('VIP_ROOM')
-    setPosition({ x: 17, y: 30 })
+    setPosition({ x: Math.floor(VIP_W / 2), y: VIP_H - 2 })
     const { updateRound2Status } = await import('@/app/actions')
     await updateRound2Status(userData.id, true)
   }
@@ -309,23 +351,33 @@ export default function MapClient({ userData }: MapClientProps) {
   // --- GLOBAL BROADCAST RECEIVER ---
   useEffect(() => {
     if (broadcastMessage && broadcastMessage.trim() !== '') {
-      const timer = setTimeout(() => setBroadcastMessage(null), 60000)
+      const timer = setTimeout(() => setBroadcastMessage(null), 5000)
       return () => clearTimeout(timer)
     }
   }, [broadcastMessage])
 
   useEffect(() => {
+    const handleBroadcast = (currentRound: string) => {
+      if (currentRound && currentRound.startsWith('BROADCAST:')) {
+        const parts = currentRound.split(':')
+        if (parts.length >= 3) {
+          const timestamp = parseInt(parts[1])
+          const msg = parts.slice(2).join(':')
+          if (timestamp > lastBroadcastId.current && Date.now() - timestamp < 30000) {
+            lastBroadcastId.current = timestamp
+            setBroadcastMessage(`ADMIN|${msg}`)
+          }
+        }
+      }
+    }
+
     const eventChannel = supabase.channel('map_event_updates')
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'event_control', filter: 'id=eq.1' }, (payload) => {
         const newRecord = payload.new as any
         const portalNowClosed = newRecord.round_2_open === false
         setIsRound2Open(!portalNowClosed)
         if (inRound2 && portalNowClosed) handleTeleportToRound1()
-        if (newRecord.current_round && newRecord.current_round.startsWith('BROADCAST:')) {
-          setBroadcastMessage(newRecord.current_round.replace('BROADCAST:', ''))
-        } else {
-          setBroadcastMessage(null)
-        }
+        handleBroadcast(newRecord.current_round)
       })
       .subscribe()
 
@@ -335,11 +387,7 @@ export default function MapClient({ userData }: MapClientProps) {
         const portalNowClosed = eventData.round_2_open === false
         setIsRound2Open(!portalNowClosed)
         if (inRound2 && portalNowClosed) handleTeleportToRound1()
-        if (eventData.current_round && eventData.current_round.startsWith('BROADCAST:')) {
-          setBroadcastMessage(eventData.current_round.replace('BROADCAST:', ''))
-        } else {
-          setBroadcastMessage(null)
-        }
+        handleBroadcast(eventData.current_round)
       }
     }, 5000)
 
@@ -371,7 +419,7 @@ export default function MapClient({ userData }: MapClientProps) {
       if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') { newPos.x -= 1; newDir = 'left' }
       if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') { newPos.x += 1; newDir = 'right' }
 
-      if (newPos.x === currentPos.x && newPos.y === currentPos.y && newDir === currentDir) return
+      if (newPos.x === currentPos.x && newPos.y === currentPos.y && newDir === currentDir && e.key !== 'Enter') return
 
       if (isBlocked(newPos.x, newPos.y)) {
         if (newDir !== currentDir) setDirection(newDir)
@@ -409,14 +457,14 @@ export default function MapClient({ userData }: MapClientProps) {
 
       // Portal Logic
       if (currentScene === 'LOBBY') {
-        if (newPos.x <= 0) { setScene('WING_1'); setPosition({ x: 31, y: 17 }); return }
-        if (newPos.x >= LOBBY_W - 1) { setScene('WING_2'); setPosition({ x: 2, y: 17 }); return }
+        if (newPos.x <= 0) { setScene('WING_1'); setPosition({ x: WING_W - 2, y: 16 }); return }
+        if (newPos.x >= LOBBY_W - 1) { setScene('WING_2'); setPosition({ x: 1, y: 16 }); return }
         if (newPos.y <= 0) { 
           if (r2open) {
             // Check badges for VIP room
             const bCount = Object.values(stampsRef.current).filter(Boolean).length
             if (bCount < 10) {
-              setBroadcastMessage("BOUNCER: Sorry pal, you need 10 badges to get in here.")
+              setBroadcastMessage("DEALER|BOUNCER: Sorry pal, you need 10 badges to get in here.")
               setPosition({ x: newPos.x, y: 1 })
               return
             }
@@ -425,13 +473,11 @@ export default function MapClient({ userData }: MapClientProps) {
           return 
         }
       } else if (currentScene === 'WING_1') {
-        if (newPos.x >= WING_W - 1) { setScene('LOBBY'); setPosition({ x: 2, y: 9 }); return }
-        if (newPos.y >= WING_H - 1) { setScene('LOBBY'); setPosition({ x: 9, y: 17 }); return }
+        if (newPos.x >= WING_W - 1) { setScene('LOBBY'); setPosition({ x: 1, y: 9 }); return }
       } else if (currentScene === 'WING_2') {
-        if (newPos.x <= 0) { setScene('LOBBY'); setPosition({ x: LOBBY_W - 3, y: 9 }); return }
-        if (newPos.y >= WING_H - 1) { setScene('LOBBY'); setPosition({ x: 9, y: 17 }); return }
+        if (newPos.x <= 0) { setScene('LOBBY'); setPosition({ x: LOBBY_W - 2, y: 9 }); return }
       } else if (currentScene === 'VIP_ROOM') {
-        if (newPos.y >= WING_H - 1) { handleTeleportToRound1(); return }
+        if (newPos.y >= VIP_H - 1) { handleTeleportToRound1(); return }
       }
 
       // Broadcast Position
@@ -450,7 +496,14 @@ export default function MapClient({ userData }: MapClientProps) {
           if (routeOrAction === 'final') {
             setShowBetModal(true)
           } else {
-            router.push(`/game/${routeOrAction}`)
+            // Check if game is live before routing
+            supabase.from('game_state').select('entry_pin').eq('game_id', routeOrAction).eq('is_active', true).maybeSingle().then(({ data }) => {
+              if (data?.entry_pin) {
+                router.push(`/game/${routeOrAction}`)
+              } else {
+                setBroadcastMessage("DEALER|DEALER: This table is currently closed. Wait for the admin to open it.")
+              }
+            })
           }
         }
       }
@@ -466,8 +519,8 @@ export default function MapClient({ userData }: MapClientProps) {
   const badgeCount = Object.values(stamps).filter(Boolean).length
 
   // Active data
-  const gridW = scene === 'LOBBY' ? LOBBY_W : WING_W
-  const gridH = scene === 'LOBBY' ? LOBBY_H : WING_H
+  const gridW = scene === 'LOBBY' ? LOBBY_W : scene === 'VIP_ROOM' ? VIP_W : WING_W
+  const gridH = scene === 'LOBBY' ? LOBBY_H : scene === 'VIP_ROOM' ? VIP_H : WING_H
   const activeRooms = scene === 'LOBBY' ? LOBBY_ROOM : scene === 'WING_1' ? WING_1_ROOM : scene === 'WING_2' ? WING_2_ROOM : VIP_ROOM
   const activeWalls = scene === 'LOBBY' ? LOBBY_WALLS : scene === 'WING_1' ? WING_1_WALLS : scene === 'WING_2' ? WING_2_WALLS : VIP_WALLS
   const activeTables = scene === 'WING_1' ? WING_1_TABLES : scene === 'WING_2' ? WING_2_TABLES : scene === 'VIP_ROOM' ? VIP_TABLES : []
@@ -510,6 +563,8 @@ export default function MapClient({ userData }: MapClientProps) {
 
   // Near table info for tooltip
   const nearTableData = nearTable ? activeTables.find(t => t.route === nearTable) : null
+
+  if (!isMounted) return null
 
   return (
     <div className="flex w-full h-screen bg-[#3a3028] select-none overflow-hidden relative">
@@ -571,23 +626,33 @@ export default function MapClient({ userData }: MapClientProps) {
 
 
       {/* BROADCAST TOAST */}
-      <AnimatePresence>
-        {broadcastMessage && broadcastMessage.trim() !== '' && (
-          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}
-            className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] max-w-md bg-retro-burgundy/95 text-retro-cream p-4 rounded-xl border border-red-400/40 shadow-retro-lg backdrop-blur">
-            <div className="flex items-center gap-2 mb-1">
-              <span>📢</span>
-              <h3 className="font-bold font-pixel text-[10px] uppercase text-retro-gold">Pit Boss</h3>
-            </div>
-            <p className="font-mono text-xs leading-relaxed">{broadcastMessage}</p>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <div className="fixed top-4 left-0 w-full flex justify-center z-[9999] pointer-events-none">
+        <AnimatePresence>
+          {broadcastMessage && broadcastMessage.trim() !== '' && (
+            <motion.div initial={{ opacity: 0, y: -20, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -20, scale: 0.95 }}
+              className={`w-auto max-w-[90vw] md:max-w-2xl p-6 rounded-xl border-4 shadow-retro-lg backdrop-blur pointer-events-auto break-words ${
+                broadcastMessage.startsWith('ADMIN|') 
+                  ? 'bg-retro-burgundy border-retro-gold text-retro-cream' 
+                  : 'bg-[#2a221c]/95 border-red-400/40 text-retro-cream'
+              }`}>
+              <div className="flex items-center gap-3 mb-2 justify-center border-b-2 border-white/20 pb-2">
+                <span className={broadcastMessage.startsWith('ADMIN|') ? 'text-2xl' : ''}>📢</span>
+                <h3 className={`font-bold font-pixel uppercase tracking-widest ${broadcastMessage.startsWith('ADMIN|') ? 'text-lg text-retro-gold' : 'text-[10px] text-retro-gold'}`}>
+                  {broadcastMessage.startsWith('ADMIN|') ? 'ADMIN BROADCAST' : 'Pit Boss'}
+                </h3>
+              </div>
+              <p className={`font-pixel leading-relaxed break-words ${broadcastMessage.startsWith('ADMIN|') ? 'text-xl uppercase text-center mt-4 text-white drop-shadow-md' : 'text-xs font-mono'}`}>
+                {broadcastMessage.replace('ADMIN|', '').replace('DEALER|', '')}
+              </p>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
 
       {/* ========================================
           THE MAP VIEWPORT
           ======================================== */}
-      <div ref={scrollRef} className="flex-1 overflow-auto relative pb-[76px] hide-scrollbar" style={{ overflowX: 'hidden' }}>
+      <div ref={scrollRef} className="flex-1 overflow-hidden relative pb-[76px] hide-scrollbar">
         <div
           className="relative floor-wood mx-auto shadow-2xl"
           style={{ 
@@ -623,7 +688,7 @@ export default function MapClient({ userData }: MapClientProps) {
             <div key={`wall-${i}`}
               className={`absolute ${activeRooms.find(r =>
                 w.x >= r.x && w.x < r.x + r.w && w.y >= r.y && w.y < r.y + r.h
-              )?.wallType || 'wall-wood'}`}
+              )?.wallType || 'wall-wood'} ${w.className || ''}`}
               style={{
                 left: w.x * CELL, top: w.y * CELL,
                 width: CELL, height: CELL,
@@ -657,8 +722,22 @@ export default function MapClient({ userData }: MapClientProps) {
           )}
 
           {/* EXIT PORTAL */}
-          {scene !== 'LOBBY' && (
-            <div className="absolute z-[40] stairs-up cursor-pointer" style={{ left: 15 * CELL, top: 33 * CELL, width: CELL * 4, height: CELL }}>
+          {scene === 'WING_1' && (
+            <div className="absolute z-[40] stairs-up cursor-pointer" style={{ left: (WING_W - 1) * CELL, top: (WING_H/2 - 2) * CELL, width: CELL, height: CELL * 4 }}>
+              <div className="w-full h-full flex items-center justify-center">
+                <div className="font-pixel text-[6px] bg-black/60 px-2 py-0.5 rounded text-retro-gold font-bold -rotate-90 whitespace-nowrap">LOBBY</div>
+              </div>
+            </div>
+          )}
+          {scene === 'WING_2' && (
+            <div className="absolute z-[40] stairs-up cursor-pointer" style={{ left: 0, top: (WING_H/2 - 2) * CELL, width: CELL, height: CELL * 4 }}>
+              <div className="w-full h-full flex items-center justify-center">
+                <div className="font-pixel text-[6px] bg-black/60 px-2 py-0.5 rounded text-retro-gold font-bold rotate-90 whitespace-nowrap">LOBBY</div>
+              </div>
+            </div>
+          )}
+          {scene === 'VIP_ROOM' && (
+            <div className="absolute z-[40] stairs-up cursor-pointer" style={{ left: (VIP_W / 2 - 2) * CELL, top: (VIP_H - 1) * CELL, width: CELL * 4, height: CELL }}>
               <div className="w-full h-full flex items-center justify-center">
                 <div className="font-pixel text-[6px] bg-black/60 px-2 py-0.5 rounded text-retro-gold font-bold">LOBBY</div>
               </div>
@@ -818,7 +897,7 @@ export default function MapClient({ userData }: MapClientProps) {
             <span className="text-2xl drop-shadow-md">🏅</span>
             <div className="flex flex-col">
               <span className="text-[10px] font-pixel text-retro-gold uppercase tracking-wider">Challenge Badges</span>
-              <span className="text-2xl font-hud text-retro-cream font-bold leading-none">{badgeCount}<span className="text-sm text-retro-cream/50">/5</span></span>
+              <span className="text-2xl font-hud text-retro-cream font-bold leading-none">{badgeCount}<span className="text-sm text-retro-cream/50">/10</span></span>
             </div>
           </div>
         </div>
@@ -840,12 +919,12 @@ export default function MapClient({ userData }: MapClientProps) {
       <AnimatePresence>
         {showHistory && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}
-            className="fixed bottom-24 right-8 z-[1010] bg-[#2a221c] border-2 border-retro-brass/40 rounded-xl shadow-2xl w-96 max-h-80 overflow-hidden flex flex-col">
-            <h3 className="text-xs font-pixel text-retro-gold mb-3 border-b border-retro-brass/20 pb-2">CREDIT HISTORY</h3>
+            className="fixed bottom-24 right-8 z-[1010] bg-[#2a221c] border-2 border-retro-brass/40 rounded-xl shadow-2xl w-96 max-h-80 flex flex-col p-4">
+            <h3 className="text-xs font-pixel text-retro-gold mb-3 border-b border-retro-brass/20 pb-2 shrink-0">CREDIT HISTORY</h3>
             {history.length === 0 ? (
               <div className="text-xs text-retro-cream/40 font-mono text-center py-4">No transactions yet.</div>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-2 overflow-y-auto pr-2 custom-scrollbar">
                 {history.map((tx: any, i: number) => (
                   <div key={i} className={`p-2 rounded-lg border-l-2 flex justify-between items-start gap-2
                     ${tx.amount >= 0 ? 'border-l-green-500/50 bg-green-900/10' : 'border-l-red-500/50 bg-red-900/10'}`}>
